@@ -1,6 +1,8 @@
+import os
 import backtrader as bt
 from backtrader import *
 from datetime import datetime
+from lib.fetch_data import download_instrument_data
 
 # Create a subclass of Strategy to define the indicators and logic
 class MyStrategy(bt.Strategy):
@@ -105,9 +107,7 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print('\n\t#2-2，设置数据文件，需要按时间字段正序排序')
-rs0 = os.path.abspath(os.path.dirname(__file__)) + '/../data/'
-filename = '002046.SZ.csv'
-fdat = rs0 + filename
+fdat = download_instrument_data('002046.SZ.csv', '2024-01-01', '2025-10-22')
 print('\t@数据文件名：', fdat)
 
 print('\t 设置数据BT回测运算：起始时间、结束时间')
