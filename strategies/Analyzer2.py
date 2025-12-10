@@ -8,7 +8,8 @@ from backtrader.analyzers import (
     SharpeRatio,
     TradeAnalyzer,
 )
-
+from lib.fetch_data import download_instrument_data
+import pandas as pd
 
 # Create a subclass of Strategy to define the indicators and logic
 class MyStrategy(bt.Strategy):
@@ -151,17 +152,20 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print("\n\t#2-2，设置数据文件，需要按时间字段正序排序")
-rs0 = os.path.abspath(os.path.dirname(__file__)) + "/../data/"
-filename = "002046.SZ.csv"
-fdat = rs0 + filename
-print("\t@数据文件名：", fdat)
+print("\t 使用 lib.fetch_data.download_instrument_data 下载数据（替换原 CSV 文件）")
+symbol = '002046.SZ'
+print("\t@数据代码：", symbol)
 
 print("\t 设置数据BT回测运算：起始时间、结束时间")
 print("\t 数据文件，可以是股票期货、外汇黄金、数字货币等交易数据")
 print("\t 格式为：标准OHLC格式，可以是日线、分时数据")
 
 t0stx, t9stx = datetime(2020, 1, 1), datetime(2021, 12, 31)
-data = bt.feeds.YahooFinanceCSVData(dataname=fdat, fromdate=t0stx, todate=t9stx)
+df_or_path = download_instrument_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
+if isinstance(df_or_path, pd.DataFrame):
+    data = bt.feeds.PandasData(dataname=df_or_path, fromdate=t0stx, todate=t9stx)
+else:
+    data = bt.feeds.YahooFinanceCSVData(dataname=str(df_or_path), fromdate=t0stx, todate=t9stx)
 
 cerebro.adddata(data)  # Add the data feed
 

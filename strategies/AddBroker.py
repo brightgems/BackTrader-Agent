@@ -3,9 +3,10 @@ import backtrader as bt
 from backtrader import *
 from datetime import datetime
 from lib.fetch_data import download_instrument_data
+import pandas as pd
 
 # Create a subclass of Strategy to define the indicators and logic
-class MyStrategy(bt.Strategy):
+class TripleDropStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         # log记录函数
         dt = dt or self.datas[0].datetime.date(0)
@@ -72,7 +73,13 @@ class MyStrategy(bt.Strategy):
             # 如果该股票仓位为0 ，可以进行BUY买入操作，
             # 这个仓位设置模式，也可以修改相关参数，进行调整
             # 使用经典的"三连跌"买入策略
-            if self.dataclose[0] < self.dataclose[-1]:
+            cash = self.broker.getcash()
+            current_price = self.data.close[0]
+            
+            # 按资金比例（例如20%）
+            position_percent = 0.9
+            size_by_percent = int((cash * position_percent) / current_price)
+            if len(self) > 21 and self.dataclose[-1] < self.dataclose[-21]:
                 # 当前close价格，低于昨天（前一天，[-1]）
                 if self.dataclose[-1] < self.dataclose[-2]:
                     # 昨天的close价格（前一天，[-1]），低于前天（前两天，[-2]）
@@ -80,22 +87,18 @@ class MyStrategy(bt.Strategy):
                     # BUY, BUY, BUY!!!，买！买！买！使用默认参数交易：数量、佣金等
                     self.log('设置买单 BUY CREATE, %.2f' % self.dataclose[0])
                     # 采用track模式，设置order订单，回避第二张订单2nd order，连续交易问题
-                    self.order = self.buy()
+                    self.order = self.buy(size=size_by_percent)
 
         else:
-            # 如果该股票仓位>0 ，可以进行SELL卖出操作，
-            # 这个仓位设置模式，也可以修改相关参数，进行调整
-            # 此处使用经验参数：
-            #   前个订单，执行完成（bar_executed），5个周期后
-            #   才能进行SELL卖出操作
-            #   这个SELL卖出操作模式，也可以修改相关参数，进行调整
-            if len(self) >= ( self.bar_executed + 5):
+            # 如果该股票仓位>0 ，可以进行SELL卖出操作
+            if len(self) >= ( self.bar_executed + 1) and  (self.dataclose[0] > self.position.price * 1.13  or \
+                self.dataclose[0] < self.position.price * 0.95):
                 # SELL, SELL, SELL!!! 卖！卖！卖！
                 # 默认卖出该股票全部数额，使用默认参数交易：数量、佣金等
                 self.log('设置卖单SELL CREATE, %.2f' % self.dataclose[0])
 
                 # 采用track模式，设置order订单，回避第二张订单2nd order，连续交易问题
-                self.order = self.sell()
+                self.order = self.close()
 
 print('\n#1，设置 BT 量化回测程序入口')
 cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
@@ -107,22 +110,31 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print('\n\t#2-2，设置数据文件，需要按时间字段正序排序')
-fdat = download_instrument_data('002046.SZ.csv', '2024-01-01', '2025-10-22')
-print('\t@数据文件名：', fdat)
+print('\t 使用 lib.fetch_data.download_instrument_data 下载数据（替换原 CSV 文件）')
+symbol = '002046.SZ'
+print('\t@数据代码：', symbol)
 
 print('\t 设置数据BT回测运算：起始时间、结束时间')
 print('\t 数据文件，可以是股票期货、外汇黄金、数字货币等交易数据')
 print('\t 格式为：标准OHLC格式，可以是日线、分时数据')
 
-t0stx,t9stx = datetime(2018, 1, 1),datetime(2018, 12, 31)
-data = bt.feeds.YahooFinanceCSVData(dataname=fdat,
-                                 fromdate=t0stx,
-                                 todate=t9stx)
+t0stx,t9stx = datetime(2018, 1, 1),datetime(2025, 11, 30)
+dpath = download_instrument_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
+data = bt.feeds.GenericCSVData(dataname=dpath,
+        dtformat=("%Y-%m-%d"),
+        datetime=0,      # 第0列为日期时间
+        close=1,         # 第1列为收盘价
+        high=2,          # 第2列为最高价
+        low=3,           # 第3列为最低价
+        open=4,          # 第4列为开盘价
+        volume=5,        # 第5列为成交量
+        openinterest=-1, # 无持仓量数据
+    )
 cerebro.adddata(data)  # Add the data feed
 
 
 print('\n\t#2-3，添加BT量化回测程序，对应的策略参数')
-cerebro.addstrategy(MyStrategy)
+cerebro.addstrategy(TripleDropStrategy)
 
 print('\n\t#2-4，添加broker经纪人佣金，默认为：千一')
 cerebro.broker.setcommission(commission=0.001)
@@ -142,4 +154,8 @@ print('\t ROI投资回报率Return on investment: %.2f %%' % kret)
 print('\n#5，绘制BT量化分析图形')
 print('\t 注意图形当中最上面的现金、资产曲线')
 print('\t 注意图形当中的买点图标，以及对应的正负收益图标')
-cerebro.plot()  # and plot it with a single command
+try:
+    cerebro.plot(style='candlestick')  # 使用更明确的绘图风格
+except AttributeError as ex:
+    print("绘图功能不可用，请检查Backtrader版本和matplotlib安装")
+    raise ex

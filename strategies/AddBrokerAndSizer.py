@@ -5,9 +5,12 @@ date: 2024-01-02 19:36:26
 import backtrader as bt
 from backtrader import *
 from datetime import datetime
+from lib.fetch_data import download_instrument_data
+import pandas as pd
+from lib.fetch_data import download_instrument_data
 
 # Create a subclass of Strategy to define the indicators and logic
-class MyStrategy(bt.Strategy):
+class TripleDropStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         # log记录函数
         dt = dt or self.datas[0].datetime.date(0)
@@ -63,7 +66,7 @@ class MyStrategy(bt.Strategy):
     def next(self):
         # next函数是最重要的trade交易（运算分析）函数，
         # 调用log函数，输出BT回溯过程当中，工作节点数据包BAR，对应的close收盘价
-        self.log('收盘价Close, %.2f' % self.dataclose[0])
+        self.log('收盘价Close: %.2f' % self.dataclose[0])
 
         # 检查订单执行情况，默认每次只能执行一张order订单交易，可以修改相关参数，进行调整
         if self.order:
@@ -76,8 +79,7 @@ class MyStrategy(bt.Strategy):
             # 使用经典的"三连跌"买入策略
             if self.dataclose[0] < self.dataclose[-1]:
                 # 当前close价格，低于昨天（前一天，[-1]）
-                if self.dataclose[-1] < self.dataclose[-2]:
-                    # 昨天的close价格（前一天，[-1]），低于前天（前两天，[-2]）
+                if self.dataclose[-1] < self.dataclose[-2] and self.dataclose[-2] < self.dataclose[-3]:
                     # "三连跌"买入信号成立:
                     # BUY, BUY, BUY!!!，买！买！买！使用默认参数交易：数量、佣金等
                     self.log('设置买单 BUY CREATE, %.2f' % self.dataclose[0])
@@ -109,24 +111,31 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print('\n\t#2-2，设置数据文件，需要按时间字段正序排序')
-rs0 = os.path.abspath(os.path.dirname(__file__)) + '/../data/'
-filename = '002046.SZ.csv'
-fdat = rs0 + filename
-print('\t@数据文件名：', fdat)
+print('\t 使用 lib.fetch_data.download_instrument_data 下载数据（替换原 CSV 文件）')
+symbol = '002046.SZ'
+print('\t@数据代码：', symbol)
 
 print('\t 设置数据BT回测运算：起始时间、结束时间')
 print('\t 数据文件，可以是股票期货、外汇黄金、数字货币等交易数据')
 print('\t 格式为：标准OHLC格式，可以是日线、分时数据')
 
 t0stx,t9stx = datetime(2018, 1, 1),datetime(2018, 12, 31)
-data = bt.feeds.YahooFinanceCSVData(dataname=fdat,
-                                 fromdate=t0stx,
-                                 todate=t9stx)
+dpath = download_instrument_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
+data = bt.feeds.GenericCSVData(dataname=dpath,
+        dtformat=("%Y-%m-%d"),
+        datetime=0,      # 第0列为日期时间
+        close=1,         # 第1列为收盘价
+        high=2,          # 第2列为最高价
+        low=3,           # 第3列为最低价
+        open=4,          # 第4列为开盘价
+        volume=5,        # 第5列为成交量
+        openinterest=-1, # 无持仓量数据
+    )
 cerebro.adddata(data)  # Add the data feed
 
 
 print('\n\t#2-3，添加BT量化回测程序，对应的策略参数')
-cerebro.addstrategy(MyStrategy)
+cerebro.addstrategy(TripleDropStrategy)
 
 print('\n\t#2-4，添加broker经纪人佣金，默认为：千一')
 cerebro.broker.setcommission(commission=0.001)
