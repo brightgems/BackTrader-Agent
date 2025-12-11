@@ -166,6 +166,11 @@ print("\t 格式为：标准OHLC格式，可以是日线、分时数据")
 t0stx, t9stx = datetime(2020, 1, 1), datetime(2021, 12, 31)
 # 下载数据，函数可能返回 pandas.DataFrame 或 CSV 文件路径
 df_or_path = download_instrument_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
+data = bt.feeds.YahooFinanceData(dataname='AAPL', 
+                        fromdate=datetime(2020, 1, 1),
+                        todate=datetime(2020, 12, 31),
+                        timeframe=bt.TimeFrame.Days,
+                        reverse=False)
 if isinstance(df_or_path, pd.DataFrame):
     data = bt.feeds.PandasData(dataname=df_or_path, fromdate=t0stx, todate=t9stx)
 else:
