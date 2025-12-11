@@ -134,7 +134,7 @@ def run_drawdown_strategy():
     dcash0 = cerebro.broker.startingcash
 
     print('\n\t#2-2，设置数据文件')
-    symbol = '002046.SZ'
+    symbol = 'GOOG'
     print('\t@数据代码：', symbol)
 
     t0stx, t9stx = datetime(2018, 1, 1), datetime(2025, 11, 30)

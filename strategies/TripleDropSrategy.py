@@ -106,7 +106,7 @@ cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
 
 print('\n#2，设置BT回测初始参数及策略')
 print('\n\t#2-1，设置BT回测初始参数：起始资金等')
-dmoney0 = 100000.0
+dmoney0 = 10000.0
 cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
