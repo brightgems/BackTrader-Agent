@@ -1,6 +1,7 @@
 import yfinance as yf
 import backtrader as bt
 import pandas as pd
+from pathlib import Path
 import os
 from datetime import datetime
 
@@ -22,7 +23,7 @@ def download_yfinance_data(instrument:str, start_date:str, end_date:str
         pd.DataFrame 或 str: 包含历史数据的DataFrame或文件路径
     """
     # 使用绝对路径确保无论从哪个目录运行都能正确保存文件
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    current_dir = Path(os.path.abspath(__file__)).parent.parent
     datas_dir = os.path.join(current_dir, "datas")
     os.makedirs(datas_dir, exist_ok=True)
     
@@ -49,6 +50,12 @@ def download_yfinance_data(instrument:str, start_date:str, end_date:str
         auto_adjust=True,
         proxy=proxy
     )
+    # yfinance 的“坑点”：只复权了 Close， 让所有 OHLC 都复权
+    if "Adj Close" in df.columns:
+        adj_factor = df["Adj Close"] / df["Close"]
+        for col in ["Open", "High", "Low", "Close"]:
+            df[col] = df[col] * adj_factor
+    df = df[["Open","Close","High","Low","Volume"]]
     if len(df) == 0:
         raise ValueError(f"无法下载数据，请检查代码 {instrument} 和日期范围 {start_date} 至 {end_date} 是否正确。")
     df.index = pd.to_datetime(df.index)
@@ -66,10 +73,10 @@ def get_yfinance_data(code, start_date, end_date):
    data = bt.feeds.GenericCSVData(dataname=fpath,
         dtformat=("%Y-%m-%d"),
         datetime=0,      # 第0列为日期时间
-        close=1,         # 第1列为收盘价
-        high=2,          # 第2列为最高价
-        low=3,           # 第3列为最低价
-        open=4,          # 第4列为开盘价
+        open=1,          # 第4列为开盘价
+        close=2,         # 第1列为收盘价
+        high=3,          # 第2列为最高价
+        low=4,           # 第3列为最低价
         volume=5,        # 第5列为成交量
         openinterest=-1, # 无持仓量数据
     )

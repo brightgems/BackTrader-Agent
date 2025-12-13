@@ -1,20 +1,34 @@
 import backtrader as bt
 from backtrader import *
 from datetime import datetime
-import os
+from backtrader.analyzers import (
+    SQN,
+    AnnualReturn,
+    TimeReturn,
+    SharpeRatio,
+    TradeAnalyzer,
+    PyFolio,
+)
+
 from utils.fetch_data import get_yfinance_data
 import pandas as pd
+import quantstats as qs
 
 
 # Create a subclass of Strategy to define the indicators and logic
 class MyStrategy(bt.Strategy):
     # 定义MA均线策略的周期参数变量，默认值是15
-    params = (("maperiod", 15),)
+    # 增加类一个log打印开关变量： fgPrint，默认自是关闭
+    params = (
+        ("maperiod", 15),
+        ("fgPrint", False),
+    )
 
-    def log(self, txt, dt=None):
-        # log记录函数
-        dt = dt or self.datas[0].datetime.date(0)
-        print("%s, %s" % (dt.isoformat(), txt))
+    def log(self, txt, dt=None, fgPrint=False):
+        # 增强型log记录函数，带fgPrint打印开关变量
+        if self.params.fgPrint or fgPrint:
+            dt = dt or self.datas[0].datetime.date(0)
+            print("%s, %s" % (dt.isoformat(), txt))
 
     def __init__(self):
         # 默认数据，一般使用股票池当中，下标为0的股票，
@@ -71,14 +85,14 @@ class MyStrategy(bt.Strategy):
             return
 
         self.log(
-            "交易利润OPERATION PROFIT, 毛利GROSS %.2f, 净利NET %.2f"
+            "交易操盘利润OPERATION PROFIT, 毛利GROSS %.2f, 净利NET %.2f"
             % (trade.pnl, trade.pnlcomm)
         )
 
     def next(self):
         # next函数是最重要的trade交易（运算分析）函数，
         # 调用log函数，输出BT回溯过程当中，工作节点数据包BAR，对应的close收盘价
-        self.log("收盘价Close, %.2f" % self.dataclose[0])
+        self.log("当前收盘价Close, %.2f" % self.dataclose[0])
         #
         #
         # 检查订单执行情况，默认每次只能执行一张order订单交易，可以修改相关参数，进行调整
@@ -90,7 +104,7 @@ class MyStrategy(bt.Strategy):
             #
             # 如果该股票仓位为0 ，可以进行BUY买入操作，
             # 这个仓位设置模式，也可以修改相关参数，进行调整
-            #
+            self.sizer.setsizing(int(self.broker.getcash()*0.9)//self.datas[0].close[0])
             # 使用最简单的MA均线策略
             if self.dataclose[0] < self.sma[0]:
                 # 如果当前close收盘价<当前的ma均价
@@ -113,13 +127,24 @@ class MyStrategy(bt.Strategy):
                 # ma均线策略，卖出信号成立:
                 # 默认卖出该股票全部数额，使用默认参数交易：数量、佣金等
                 self.log(
-                    "设置卖单SELLE, %.2f, name : %s"
+                    "SELL CREATE, %.2f, name : %s"
                     % (self.dataclose[0], self.datas[0]._name)
                 )
 
                 # 采用track模式，设置order订单，回避第二张订单2nd order，连续交易问题
                 self.order = self.sell()
 
+    def stop(self):
+        # 新增加一个stop策略完成函数
+        # 用于输出执行后带数据
+        self.log(
+            "(MA均线周期变量Period= %2d) ，最终资产总值： %.2f"
+            % (self.params.maperiod, self.broker.getvalue()),
+            fgPrint=True,
+        )
+
+
+# ----------
 
 print("\n#1，设置 BT 量化回测程序入口")
 cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
@@ -132,14 +157,15 @@ dcash0 = cerebro.broker.startingcash
 
 print("\n\t#2-2，设置数据文件，需要按时间字段正序排序")
 print("\t 使用 utils.fetch_data.download_yfinance_data 下载数据（替换原 CSV 文件）")
-symbol = '002046.SZ'
+symbol = "002046.SZ"
 print("\t@数据代码：", symbol)
 
 print("\t 设置数据BT回测运算：起始时间、结束时间")
 print("\t 数据文件，可以是股票期货、外汇黄金、数字货币等交易数据")
 print("\t 格式为：标准OHLC格式，可以是日线、分时数据")
 
-t0stx, t9stx = datetime(2018, 1, 1), datetime(2018, 12, 31)
+t0stx, t9stx = datetime(2020, 1, 1), datetime(2021, 12, 31)
+# 下载数据，函数可能返回 pandas.DataFrame 或 CSV 文件路径
 data = get_yfinance_data(symbol, t0stx, t9stx)
 cerebro.adddata(data)  # Add the data feed
 
@@ -153,19 +179,72 @@ cerebro.broker.setcommission(commission=0.001)
 print("\n\t#2-5,设置每手交易数目为：10，不再使用默认值：1手")
 cerebro.addsizer(bt.sizers.FixedSize, stake=10)
 
+print("\n\t#2-6,设置addanalyzer分析参数")
+cerebro.addanalyzer(SQN)
+#
+cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="SharpeRatio", legacyannual=True)
+cerebro.addanalyzer(bt.analyzers.AnnualReturn, _name="AnnualReturn")
+#
+cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="TradeAnalyzer")
+cerebro.addanalyzer(bt.analyzers.DrawDown, _name="DW")
+# 添加PyFolio分析器用于quantstats
+cerebro.addanalyzer(bt.analyzers.PyFolio, _name='PyFolio')
+
+
 print("\n#3，调用BT回测入口程序，开始执行run量化回测运算")
-print("\t注意输出信息的变化，增加了佣金信息")
-cerebro.run()
+results = cerebro.run()
 
 print("\n#4，完成BT量化回测运算")
 dval9 = cerebro.broker.getvalue()
+dget = dval9 - dcash0
 kret = (dval9 - dcash0) / dcash0 * 100
 
 print("\t 起始资金Starting Portfolio Value:%.2f" % dcash0)
 print("\t 资产总值Final Portfolio Value:%.2f" % dval9)
+print("\t 利润总额:  %.2f," % dget)
 print("\t ROI投资回报率Return on investment: %.2f %%" % kret)
 
-print("\n#5，绘制BT量化分析图形")
-print("\t 注意图形当中最上面的现金、资产曲线")
-print("\t 注意图形当中的买点图标，以及对应的正负收益图标")
-cerebro.plot()  # and plot it with a single command
+# ---------
+print("\n#5,analyzer分析BT量化回测数据")
+strat = results[0]
+anzs = strat.analyzers
+#
+dsharp = anzs.SharpeRatio.get_analysis()["sharperatio"]
+#
+dw = anzs.DW.get_analysis()
+max_drowdown_len = dw["max"]["len"]
+max_drowdown = dw["max"]["drawdown"]
+max_drowdown_money = dw["max"]["moneydown"]
+#
+print("\t夏普指数SharpeRatio : ", dsharp)
+print("\t最大回撤周期 max_drowdown_len : ", max_drowdown_len)
+print("\t最大回撤 max_drowdown : ", max_drowdown)
+print("\t最大回撤(资金)max_drowdown_money : ", max_drowdown_money)
+
+# ----------
+print("\n#6,使用quantstats生成专业HTML报告")
+
+# 获取PyFolio分析器结果并转换为quantstats格式
+print("\n\t#6-1, 获取策略收益率数据")
+portfolio_stats = strat.analyzers.getbyname('PyFolio')
+returns, positions, transactions, gross_lev = portfolio_stats.get_pf_items()
+returns.index = returns.index.tz_convert(None)
+
+# 转换收益率数据格式
+returns_series = returns
+
+# 设置quantstats并生成HTML报告
+print("\t#6-2, 生成quantstats HTML报告")
+qs.reports.html(
+    returns_series, 
+    output='quantstats_report.html',
+    title='量化策略回测报告',
+    download_filename='quantstats_report.html'
+)
+
+print("\t#6-3, HTML报告已生成: quantstats_report.html")
+print("\t#6-4, 请在浏览器中打开此文件查看完整分析报告")
+
+# ----------
+print("\n#7，绘制BT量化分析图形")
+cerebro.plot(style="candle")

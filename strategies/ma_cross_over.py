@@ -2,14 +2,14 @@ import backtrader as bt
 from backtrader_plotting import Bokeh
 from backtrader_plotting.schemes import Tradimo
 import yfinance as yf
-from utils.fetch_data import download_yfinance_data
+from utils.fetch_data import get_yfinance_data
 
 
 class SmaCross(bt.Strategy):
     # list of parameters which are configurable for the strategy
     params = dict(
-        pfast=10,  # period for the fast moving average
-        pslow=30   # period for the slow moving average
+        pfast=19,  # period for the fast moving average
+        pslow=98   # period for the slow moving average
     )
 
     def __init__(self):
@@ -36,21 +36,10 @@ class SmaCross(bt.Strategy):
 cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
 
 # Create a data feed
-data_file = download_yfinance_data("AAPL", "2022-01-01", "2024-12-31")
-data = bt.feeds.GenericCSVData(
-        dataname=data_file,
-        dtformat=("%Y-%m-%d"),
-        datetime=0,      # 第0列为日期时间
-        close=1,         # 第1列为收盘价
-        high=2,          # 第2列为最高价
-        low=3,           # 第3列为最低价
-        open=4,          # 第4列为开盘价
-        volume=5,        # 第5列为成交量
-        openinterest=-1, # 无持仓量数据
-    )
+data = get_yfinance_data("INTL", "2014-01-01", "2025-11-30")
 
 cerebro.adddata(data)  # Add the data feed
 
 cerebro.addstrategy(SmaCross)  # Add the trading strategy
 cerebro.run()  # run it all
-cerebro.plot()  # and plot it with a single command
+cerebro.plot(style="lines")

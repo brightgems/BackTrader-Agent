@@ -20,6 +20,7 @@ if project_root not in sys.path:
 class DrawdownSellStrategy(bt.Strategy):
     params = (
         ('drawdown_threshold', 5.0),  # 回撤阈值百分比
+        ('max_holding_days', 10),  # 回撤阈值百分比
     )
 
     def log(self, txt, dt=None):
@@ -43,6 +44,9 @@ class DrawdownSellStrategy(bt.Strategy):
         # 买入执行bar
         self.bar_executed = 0
         self.stop_win_price = 0.0
+        
+        # 跟踪持仓天数
+        self.holding_days = 0
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -61,9 +65,15 @@ class DrawdownSellStrategy(bt.Strategy):
                 # 重置持仓后的峰值
                 self.peak_value = self.broker.getvalue()
                 
+                # 重置持仓天数计数器
+                self.holding_days = 0
+                
             elif order.issell():
                 self.log('卖单执行SELL EXECUTED,成交价： %.2f,小计 Cost: %.2f,佣金 Comm %.2f'
                          % (order.executed.price, order.executed.value, order.executed.comm))
+                
+                # 卖出时重置持仓天数
+                self.holding_days = 0
 
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log('订单Order： 取消Canceled/保证金Margin/拒绝Rejected')
@@ -111,6 +121,16 @@ class DrawdownSellStrategy(bt.Strategy):
                     self.order = self.buy(size=size_by_percent)
                     self.stop_win_price = self.dataclose[0]
         else:
+            # 更新持仓天数
+            self.holding_days += 1
+            self.log('当前持仓天数: %d 天' % self.holding_days)
+            
+            # 检查持仓时间是否超过10天
+            if self.holding_days >= self.params.max_holding_days:
+                self.log('持仓时间超过10天，强制卖出 SELL CREATE, %.2f' % self.dataclose[0])
+                self.order = self.close()
+                return
+            
             # 如果有持仓，检查回撤是否超过阈值
             if self.current_drawdown >= self.params.drawdown_threshold:
                 self.log('回撤超过 %.1f%%，设置卖单 SELL CREATE, %.2f' % 
