@@ -4,6 +4,19 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Literal
 
+# Import unified LLM service adapter
+try:
+    from llm_advisory.services.llm_service_adapter import get_llm_adapter
+    LLM_SERVICE_AVAILABLE = True
+except ImportError as e:
+    LLM_SERVICE_AVAILABLE = False
+    get_llm_adapter = None
+    print(f"LLM service adapter import failed: {e}")
+except Exception as e:
+    LLM_SERVICE_AVAILABLE = False
+    get_llm_adapter = None
+    print(f"LLM service setup error: {e}")
+
 
 class LLMMessage(BaseModel):
     """LLM message model for advisory system"""
@@ -95,10 +108,18 @@ class LLMAdvisor(ABC):
     advisor_instructions: str = ""
     advisor_prompt: str = ""
     
-    def __init__(self):
+    # LLM provider configuration
+    llm_provider: str = "ollama"  # Default to ollama for local development
+    llm_model: str = "llama2"  # Default model
+    
+    def __init__(self, provider: str = None, model: str = None):
         self.advisor_messages_input = AdvisorMessagesInput()
         
-    @abstractmethod
+        if provider:
+            self.llm_provider = provider
+        if model:
+            self.llm_model = model
+        
     def update_state(self, state: LLMAdvisorUpdateStateData) -> LLMAdvisorUpdateStateData:
         """Update the advisor state with new data
         
@@ -108,14 +129,54 @@ class LLMAdvisor(ABC):
         Returns:
             Updated state data
         """
-        pass
+        return self._update_state(state)
     
     def _update_state(self, state: LLMAdvisorUpdateStateData) -> LLMAdvisorUpdateStateData:
-        """Default implementation for state update"""
-        # This would typically call an LLM and update the state
-        # For now, return a basic response
+        """Default implementation for state update using LLM service"""
+        
+        # Build the prompt for the advisor
+        system_prompt = self.advisor_instructions or "You are a trading advisor."
+        user_prompt = f"{self.advisor_prompt}\n\nData:\n{self.advisor_messages_input.advisor_data}"
+        
+        if LLM_SERVICE_AVAILABLE and get_llm_adapter:
+            try:
+                # Use unified LLM service adapter
+                llm_adapter = get_llm_adapter()
+                response_content = llm_adapter.generate_advisor_response(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    model="llama2",
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                
+                # Create response message
+                response_message = LLMMessage(
+                    role="assistant",
+                    content=response_content,
+                    timestamp=datetime.now()
+                )
+                
+            except Exception as e:
+                # Fallback to default response if LLM service fails
+                response_message = LLMMessage(
+                    role="assistant",
+                    content=f"LLM service error: {str(e)}. Using fallback response.",
+                    timestamp=datetime.now()
+                )
+        else:
+            # Fallback response if LLM service is not available
+            response_message = LLMMessage(
+                role="assistant",
+                content="LLM service not configured. Please set up OpenAI or Ollama service.",
+                timestamp=datetime.now()
+            )
+        
+        # Update state with the response
+        new_messages = state.messages + [response_message]
+        
         return LLMAdvisorUpdateStateData(
-            messages=[LLMMessage(role="assistant", content="Default response")],
+            messages=new_messages,
             data=state.data,
             metadata=state.metadata
         )
@@ -136,7 +197,43 @@ class AdvisoryAdvisor(LLMAdvisor):
 
 class PersonaAdvisor(LLMAdvisor):
     """Base class for persona-based advisors"""
-    def __init__(self, name: str = "", personality: str = ""):
-        super().__init__()
+    def __init__(self, name: str = "", personality: str = "", provider: str = None, model: str = None):
+        super().__init__(provider, model)
         self.persona_name = name
         self.personality = personality
+        
+        # Set instructions based on personality
+        if personality:
+            self.advisor_instructions = f"You are {name} with the following personality: {personality}"
+        else:
+            self.advisor_instructions = f"You are {name}"
+
+
+# LLM Service availability check utility
+def check_llm_service_availability(provider: str = None) -> Dict[str, Any]:
+    """Check availability of LLM services"""
+    result = {
+        "available": False,
+        "provider": provider,
+        "details": {}
+    }
+    
+    if not LLM_SERVICE_AVAILABLE:
+        result["details"]["error"] = "LLM service adapter not available"
+        return result
+    
+    try:
+        llm_adapter = get_llm_adapter(provider)
+        result["available"] = llm_adapter.test_connection()
+        result["provider"] = llm_adapter.provider
+        result["available_providers"] = llm_adapter.get_available_providers()
+        
+        if result["available"]:
+            result["details"]["status"] = f"{llm_adapter.provider} service is available"
+        else:
+            result["details"]["status"] = f"{llm_adapter.provider} service is not available"
+            
+    except Exception as e:
+        result["details"]["error"] = str(e)
+    
+    return result

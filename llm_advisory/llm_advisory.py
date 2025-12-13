@@ -10,7 +10,6 @@ class LLMAdvisory(ABC):
         self.all_advisors: List[LLMAdvisor] = []
         self.metadata: Dict[str, Any] = {}
         
-    @abstractmethod
     def init_strategy(self, strategy, **kwargs):
         """Initialize the advisory system with a trading strategy
         
@@ -18,6 +17,7 @@ class LLMAdvisory(ABC):
             strategy: The trading strategy instance
             **kwargs: Additional initialization parameters
         """
+        # Default implementation - can be overridden by subclasses
         pass
     
     def add_advisor(self, advisor: LLMAdvisor):
