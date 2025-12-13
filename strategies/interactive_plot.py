@@ -4,7 +4,7 @@ from backtrader_plotting import Bokeh
 import sys
 from pathlib import Path
 import sys
-from lib.fetch_data import get_yfinance_data
+from utils.fetch_data import get_yfinance_data
 
 
 class TestStrategy(bt.Strategy):

@@ -2,7 +2,7 @@ import backtrader as bt
 from backtrader import *
 from datetime import datetime
 import os
-from lib.fetch_data import get_yfinance_data
+from utils.fetch_data import get_yfinance_data
 import pandas as pd
 
 
@@ -131,7 +131,7 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print("\n\t#2-2，设置数据文件，需要按时间字段正序排序")
-print("\t 使用 lib.fetch_data.download_yfinance_data 下载数据（替换原 CSV 文件）")
+print("\t 使用 utils.fetch_data.download_yfinance_data 下载数据（替换原 CSV 文件）")
 symbol = '002046.SZ'
 print("\t@数据代码：", symbol)
 

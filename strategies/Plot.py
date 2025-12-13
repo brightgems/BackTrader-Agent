@@ -4,7 +4,7 @@ date: 2024-01-02 20:06:52
 """
 import backtrader as bt
 from backtrader import *
-from lib.fetch_data import get_yfinance_data
+from utils.fetch_data import get_yfinance_data
 from datetime import datetime
 
 

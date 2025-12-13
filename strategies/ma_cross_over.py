@@ -2,7 +2,7 @@ import backtrader as bt
 from backtrader_plotting import Bokeh
 from backtrader_plotting.schemes import Tradimo
 import yfinance as yf
-from lib.fetch_data import download_yfinance_data
+from utils.fetch_data import download_yfinance_data
 
 
 class SmaCross(bt.Strategy):

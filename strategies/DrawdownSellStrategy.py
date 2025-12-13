@@ -10,7 +10,7 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from lib.fetch_data import download_yfinance_data
+from utils.fetch_data import download_yfinance_data
 import pandas as pd
 
 # 回撤控制策略 - 当资产回撤超过5%时卖出

@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # 从lib目录导入
-from lib.fetch_data import get_yfinance_data
+from utils.fetch_data import get_yfinance_data
 
 # 或者使用内置的Sizer
 class FixedPercentSizer(bt.sizers.PercentSizer):
