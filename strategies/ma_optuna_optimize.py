@@ -20,8 +20,8 @@ def objective(trial):
     cerebro.addstrategy(SmaCross, pfast=pfast, pslow=pslow)
 
     data = get_yfinance_data(
-        'TSLA',
-        datetime.datetime(2019, 1, 1),
+        'INTC',
+        datetime.datetime(2014, 1, 1),
         datetime.datetime(2024, 12, 31)
     )
     cerebro.adddata(data)

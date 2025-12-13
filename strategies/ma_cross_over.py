@@ -1,15 +1,14 @@
 import backtrader as bt
 from backtrader_plotting import Bokeh
 from backtrader_plotting.schemes import Tradimo
-import yfinance as yf
-from utils.fetch_data import get_yfinance_data, get_tushare_data
+from utils.fetch_data import get_yfinance_data, get_akshare_data
 
 
 class SmaCross(bt.Strategy):
     # list of parameters which are configurable for the strategy
     params = dict(
-        pfast=14,  # period for the fast moving average
-        pslow=43   # period for the slow moving average
+        pfast=16,  # period for the fast moving average
+        pslow=98   # period for the slow moving average
     )
 
     def __init__(self):
@@ -36,8 +35,8 @@ def run_backtest(plot=True):
     cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
 
     # Create a data feed
-    # data = get_yfinance_data("INTL", "2014-01-01", "2025-11-30")
-    data = get_tushare_data("INTL", "2014-01-01", "2025-11-30")
+    # data = get_yfinance_data("INTC", "2014-01-01", "2025-11-30")
+    data = get_akshare_data("INTC", "2020-01-01", "2025-12-13", force_download=True)
 
     cerebro.adddata(data)  # Add the data feed
 
@@ -62,12 +61,13 @@ def run_backtest(plot=True):
     max_drowdown_len = dw["max"]["len"]
     max_drowdown = dw["max"]["drawdown"]
     max_drowdown_money = dw["max"]["moneydown"]
-    print("\t5-1夏普指数SharpeRatio : ", dsharp)
+    print("\t夏普指数SharpeRatio : ", dsharp)
     print("\t最大回撤周期 max_drowdown_len : ", max_drowdown_len)
     print("\t最大回撤 max_drowdown : ", max_drowdown)
     print("\t最大回撤(资金)max_drowdown_money : ", max_drowdown_money)
     if plot==True:
-        cerebro.plot(style="lines")
+        b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())
+        cerebro.plot(b)
     
 if __name__ == '__main__':
     run_backtest()
