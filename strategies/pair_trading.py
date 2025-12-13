@@ -7,9 +7,9 @@ from utils.fetch_data import get_yfinance_data
 
 class SafePairTradingStrategy(bt.Strategy):
     params = dict(
-        period=20,           # OLS/滚动窗口
-        zentry=2.0,          # 开仓阈值
-        zexit=0.5,           # 平仓阈值
+        period=25,           # OLS/滚动窗口
+        zentry=2.43,          # 开仓阈值
+        zexit=0.75,           # 平仓阈值
         stake=10,            # 每次开仓最小股数
         printout=True
     )
@@ -152,3 +152,6 @@ if __name__ == '__main__':
                  cash=args.cash,
                  comm=args.commperc,
                  plot=args.plot)
+    
+    
+    
