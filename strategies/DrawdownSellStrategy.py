@@ -2,7 +2,12 @@ import os
 import sys
 import backtrader as bt
 from backtrader import *
+from matplotlib import pyplot as plt
+import numpy as np
+from utils.fetch_data import get_yfinance_data
 from datetime import datetime
+
+from utils.trade_visualizer import create_detailed_report, print_trade_report, visualize_trade_analyzer
 
 # 添加当前目录到Python路径，确保lib模块能正确导入
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -10,8 +15,6 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from utils.fetch_data import download_yfinance_data
-import pandas as pd
 
 # 回撤控制策略 - 当资产回撤超过5%时卖出
 class DrawdownSellStrategy(bt.Strategy):
@@ -129,26 +132,16 @@ def run_drawdown_strategy():
 
     print('\n#2，设置BT回测初始参数及策略')
     print('\n\t#2-1，设置BT回测初始参数：起始资金等')
-    dmoney0 = 100000.0
+    dmoney0 = 10000.0
     cerebro.broker.setcash(dmoney0)
     dcash0 = cerebro.broker.startingcash
 
     print('\n\t#2-2，设置数据文件')
-    symbol = 'GOOG'
+    symbol = "002046.SZ"
     print('\t@数据代码：', symbol)
 
-    t0stx, t9stx = datetime(2018, 1, 1), datetime(2025, 11, 30)
-    dpath = download_yfinance_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
-    data = bt.feeds.GenericCSVData(dataname=dpath,
-            dtformat=("%Y-%m-%d"),
-            datetime=0,
-            close=1,
-            high=2,
-            low=3,
-            open=4,
-            volume=5,
-            openinterest=-1,
-        )
+    t0stx, t9stx = datetime(2023, 1, 1), datetime(2025, 11, 30)
+    data = get_yfinance_data(symbol, t0stx, t9stx)
     cerebro.adddata(data)
 
     print('\n\t#2-3，添加回撤控制策略')
@@ -156,9 +149,16 @@ def run_drawdown_strategy():
 
     print('\n\t#2-4，设置经纪人佣金')
     cerebro.broker.setcommission(commission=0.001)
+    
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="SharpeRatio", timeframe=bt.TimeFrame.Days,
+    annualize=True)
+    cerebro.addanalyzer(bt.analyzers.AnnualReturn, _name="AnnualReturn")
+    cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="TradeAnalyzer")
+    cerebro.addanalyzer(bt.analyzers.DrawDown, _name="DW")
+    cerebro.addanalyzer(bt.analyzers.TimeReturn, _name='returns')
 
     print('\n#3，执行回测运算')
-    cerebro.run()
+    results = cerebro.run()
 
     print('\n#4，完成回测运算')
     dval9 = cerebro.broker.getvalue()
@@ -167,7 +167,38 @@ def run_drawdown_strategy():
     print('\t起始资金Starting Portfolio Value:%.2f' % dcash0)
     print('\t资产总值Final Portfolio Value:%.2f' % dval9)
     print('\t投资回报率Return on investment: %.2f %%' % kret)
-
+   
+    # ---------
+    print("\n#5,analyzer分析BT量化回测数据")
+    strat = results[0]
+    anzs = strat.analyzers
+    #
+    dsharp = anzs.SharpeRatio.get_analysis()["sharperatio"]
+    # drowdown
+    dw = anzs.DW.get_analysis()
+    max_drowdown_len = dw["max"]["len"]
+    max_drowdown = dw["max"]["drawdown"]
+    max_drowdown_money = dw["max"]["moneydown"]
+    print("\t夏普指数SharpeRatio : ", dsharp)
+    print("\t最大回撤周期 max_drowdown_len : ", max_drowdown_len)
+    print("\t最大回撤 max_drowdown : ", max_drowdown)
+    print("\t最大回撤(资金)max_drowdown_money : ", max_drowdown_money)
+    # trade analyzer
+    trade_data = anzs.TradeAnalyzer.get_analysis()
+    # 创建可视化图表
+    visualize_trade_analyzer(trade_data)
+    plt.show()
+    # 创建详细报告
+    report = create_detailed_report(trade_data)
+    # 手工计算SharpeRatio
+    rets = list(strat.analyzers.returns.get_analysis().values())
+    mean = np.mean(rets)
+    std = np.std(rets)
+    sharpe = mean / std * np.sqrt(252)
+    print("\t手工计算SharpeRatio : ", sharpe)
+    # 打印报告
+    print_trade_report(report)
+    
     print('\n#5，绘制分析图形')
     try:
         cerebro.plot(style='candlestick')

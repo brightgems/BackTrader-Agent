@@ -8,7 +8,7 @@ from backtrader.analyzers import (
     SharpeRatio,
     TradeAnalyzer,
 )
-from utils.fetch_data import download_yfinance_data, get_yfinance_data
+from utils.fetch_data import get_yfinance_data
 import pandas as pd
 
 # Create a subclass of Strategy to define the indicators and logic
@@ -151,13 +151,8 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print("\n\t#2-2，设置数据文件，需要按时间字段正序排序")
-print("\t 使用 utils.fetch_data.download_yfinance_data 下载数据（替换原 CSV 文件）")
 symbol = '002046.SZ'
 print("\t@数据代码：", symbol)
-
-print("\t 设置数据BT回测运算：起始时间、结束时间")
-print("\t 数据文件，可以是股票期货、外汇黄金、数字货币等交易数据")
-print("\t 格式为：标准OHLC格式，可以是日线、分时数据")
 
 t0stx, t9stx = datetime(2020, 1, 1), datetime(2021, 12, 31)
 data = get_yfinance_data(symbol, t0stx, t9stx)
