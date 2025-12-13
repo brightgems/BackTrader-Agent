@@ -8,7 +8,7 @@ from backtrader.analyzers import (
     SharpeRatio,
     TradeAnalyzer,
 )
-from lib.fetch_data import download_instrument_data
+from lib.fetch_data import download_yfinance_data, get_yfinance_data
 import pandas as pd
 
 # Create a subclass of Strategy to define the indicators and logic
@@ -94,13 +94,12 @@ class MyStrategy(bt.Strategy):
         # 检查订单执行情况，默认每次只能执行一张order订单交易，可以修改相关参数，进行调整
         if self.order:
             return
-        #
+        
         # 检查当前股票的仓位position
         if not self.position:
             #
             # 如果该股票仓位为0 ，可以进行BUY买入操作，
-            # 这个仓位设置模式，也可以修改相关参数，进行调整
-            #
+            self.sizer.setsizing(int(self.broker.getcash()*0.9)//self.datas[0].close[0])
             # 使用最简单的MA均线策略
             if self.dataclose[0] < self.sma[0]:
                 # 如果当前close收盘价<当前的ma均价
@@ -152,7 +151,7 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print("\n\t#2-2，设置数据文件，需要按时间字段正序排序")
-print("\t 使用 lib.fetch_data.download_instrument_data 下载数据（替换原 CSV 文件）")
+print("\t 使用 lib.fetch_data.download_yfinance_data 下载数据（替换原 CSV 文件）")
 symbol = '002046.SZ'
 print("\t@数据代码：", symbol)
 
@@ -161,13 +160,10 @@ print("\t 数据文件，可以是股票期货、外汇黄金、数字货币等�
 print("\t 格式为：标准OHLC格式，可以是日线、分时数据")
 
 t0stx, t9stx = datetime(2020, 1, 1), datetime(2021, 12, 31)
-df_or_path = download_instrument_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
-if isinstance(df_or_path, pd.DataFrame):
-    data = bt.feeds.PandasData(dataname=df_or_path, fromdate=t0stx, todate=t9stx)
-else:
-    data = bt.feeds.YahooFinanceCSVData(dataname=str(df_or_path), fromdate=t0stx, todate=t9stx)
+data = get_yfinance_data(symbol, t0stx, t9stx)
 
 cerebro.adddata(data)  # Add the data feed
+cerebro.broker.setcash(10000)
 
 print("\n\t#2-3，添加BT量化回测程序，对应的策略参数")
 print("\n\t# 案例当中，使用的是MA均线策略")

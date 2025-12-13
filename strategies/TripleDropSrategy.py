@@ -5,9 +5,7 @@ date: 2024-01-02 19:36:26
 import backtrader as bt
 from backtrader import *
 from datetime import datetime
-from lib.fetch_data import download_instrument_data
-import pandas as pd
-from lib.fetch_data import download_instrument_data
+from lib.fetch_data import get_yfinance_data
 
 # Create a subclass of Strategy to define the indicators and logic
 class TripleDropStrategy(bt.Strategy):
@@ -111,7 +109,7 @@ cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
 print('\n\t#2-2，设置数据文件，需要按时间字段正序排序')
-print('\t 使用 lib.fetch_data.download_instrument_data 下载数据（替换原 CSV 文件）')
+print('\t 使用 lib.fetch_data.download_yfinance_data 下载数据（替换原 CSV 文件）')
 symbol = '002046.SZ'
 print('\t@数据代码：', symbol)
 
@@ -120,17 +118,7 @@ print('\t 数据文件，可以是股票期货、外汇黄金、数字货币等�
 print('\t 格式为：标准OHLC格式，可以是日线、分时数据')
 
 t0stx,t9stx = datetime(2018, 1, 1),datetime(2018, 12, 31)
-dpath = download_instrument_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
-data = bt.feeds.GenericCSVData(dataname=dpath,
-        dtformat=("%Y-%m-%d"),
-        datetime=0,      # 第0列为日期时间
-        close=1,         # 第1列为收盘价
-        high=2,          # 第2列为最高价
-        low=3,           # 第3列为最低价
-        open=4,          # 第4列为开盘价
-        volume=5,        # 第5列为成交量
-        openinterest=-1, # 无持仓量数据
-    )
+data = get_yfinance_data(symbol,t0stx,t9stx)
 cerebro.adddata(data)  # Add the data feed
 
 

@@ -10,7 +10,7 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from lib.fetch_data import download_instrument_data
+from lib.fetch_data import download_yfinance_data
 import pandas as pd
 
 # 回撤控制策略 - 当资产回撤超过5%时卖出
@@ -138,7 +138,7 @@ def run_drawdown_strategy():
     print('\t@数据代码：', symbol)
 
     t0stx, t9stx = datetime(2018, 1, 1), datetime(2025, 11, 30)
-    dpath = download_instrument_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
+    dpath = download_yfinance_data(symbol, t0stx.strftime('%Y-%m-%d'), t9stx.strftime('%Y-%m-%d'))
     data = bt.feeds.GenericCSVData(dataname=dpath,
             dtformat=("%Y-%m-%d"),
             datetime=0,

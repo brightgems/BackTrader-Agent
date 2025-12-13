@@ -4,7 +4,7 @@ from backtrader_plotting import Bokeh
 import sys
 from pathlib import Path
 import sys
-from lib.fetch_data import download_instrument_data
+from lib.fetch_data import get_yfinance_data
 
 
 class TestStrategy(bt.Strategy):
@@ -25,15 +25,7 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
 
     cerebro.addstrategy(TestStrategy, buydate=3)
-    filename = download_instrument_data("AAPL", "2022-01-01", "2024-12-31")
-    data = bt.feeds.YahooFinanceCSVData(
-        dataname=filename,
-        # Do not pass values before this date
-        fromdate=datetime.datetime(2000, 1, 1),
-        # Do not pass values after this date
-        todate=datetime.datetime(2001, 2, 28),
-        reverse=False,
-        )
+    data = get_yfinance_data('AAPL', '2022-01-01', '2022-01-31')
     cerebro.adddata(data)
     cerebro.run()
 

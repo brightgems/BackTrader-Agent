@@ -4,6 +4,7 @@ date: 2024-01-02 20:06:52
 """
 import backtrader as bt
 from backtrader import *
+from lib.fetch_data import get_yfinance_data
 from datetime import datetime
 
 
@@ -131,18 +132,12 @@ dmoney0 = 100000.0
 cerebro.broker.setcash(dmoney0)
 dcash0 = cerebro.broker.startingcash
 
-print("\n\t#2-2，设置数据文件，需要按时间字段正序排序")
-rs0 = os.path.abspath(os.path.dirname(__file__)) + "/../data/"
-filename = "002046.SZ.csv"
-fdat = rs0 + filename
-print("\t@数据文件名：", fdat)
-
 print("\t 设置数据BT回测运算：起始时间、结束时间")
 print("\t 数据文件，可以是股票期货、外汇黄金、数字货币等交易数据")
 print("\t 格式为：标准OHLC格式，可以是日线、分时数据")
 
 t0stx, t9stx = datetime(2018, 1, 1), datetime(2018, 12, 31)
-data = bt.feeds.YahooFinanceCSVData(dataname=fdat, fromdate=t0stx, todate=t9stx)
+data = get_yfinance_data('MSFT', t0stx, t9stx)
 
 cerebro.adddata(data)  # Add the data feed
 

@@ -2,7 +2,7 @@ import backtrader as bt
 from backtrader_plotting import Bokeh
 from backtrader_plotting.schemes import Tradimo
 import yfinance as yf
-from lib.fetch_data import download_instrument_data
+from lib.fetch_data import download_yfinance_data
 
 
 class SmaCross(bt.Strategy):
@@ -36,7 +36,7 @@ class SmaCross(bt.Strategy):
 cerebro = bt.Cerebro()  # create a "Cerebro" engine instance
 
 # Create a data feed
-data_file = download_instrument_data("AAPL", "2022-01-01", "2024-12-31")
+data_file = download_yfinance_data("AAPL", "2022-01-01", "2024-12-31")
 data = bt.feeds.GenericCSVData(
         dataname=data_file,
         dtformat=("%Y-%m-%d"),

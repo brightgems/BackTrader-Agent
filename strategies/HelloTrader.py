@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # 从lib目录导入
-from lib.fetch_data import download_instrument_data
+from lib.fetch_data import get_yfinance_data
 
 # 或者使用内置的Sizer
 class FixedPercentSizer(bt.sizers.PercentSizer):
@@ -75,12 +75,9 @@ class SmaCross(bt.Strategy):
                       f'佣金={order.executed.comm:.2f}')
             self.order = None
 
-def run_cerebro(data_file):
+def run_cerebro():
     """运行backtrader回测引擎
     
-    Args:
-        data_file: CSV数据文件路径
-        
     Returns:
         第一个策略实例的返回结果
     """
@@ -98,17 +95,7 @@ def run_cerebro(data_file):
 
     # --- FIX 必须确保列名正确 ---
     # 加载CSV数据文件，指定列名映射
-    data = bt.feeds.GenericCSVData(
-        dataname=data_file,
-        dtformat=("%Y-%m-%d"),
-        datetime=0,      # 第0列为日期时间
-        close=1,         # 第1列为收盘价
-        high=2,          # 第2列为最高价
-        low=3,           # 第3列为最低价
-        open=4,          # 第4列为开盘价
-        volume=5,        # 第5列为成交量
-        openinterest=-1, # 无持仓量数据
-    )
+    data = get_yfinance_data(code="MSFT", start_date="2022-01-01", end_date="2024-12-31")
     # 添加数据到回测引擎
     cerebro.adddata(data)
     # 添加SMA交叉策略
@@ -127,6 +114,5 @@ def run_cerebro(data_file):
 
 
 if __name__ == "__main__":
-    filename = download_instrument_data("AAPL", "2022-01-01", "2024-12-31")
-    strat = run_cerebro(filename)
+    strat = run_cerebro()
     print("Final Value:", strat.broker.getvalue())
