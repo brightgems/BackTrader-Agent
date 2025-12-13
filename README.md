@@ -1455,7 +1455,8 @@ cerebro.addsizer(bt.sizers.FixedSize, stake=10)
 print("\n\t#2-6,设置addanalyzer分析参数")
 cerebro.addanalyzer(SQN)
 #
-cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="SharpeRatio", legacyannual=True)
+ cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="SharpeRatio", timeframe=bt.TimeFrame.Days,
+    annualize=True)
 cerebro.addanalyzer(bt.analyzers.AnnualReturn, _name="AnnualReturn")
 #
 cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="TradeAnalyzer")

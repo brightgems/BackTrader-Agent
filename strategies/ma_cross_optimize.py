@@ -3,25 +3,27 @@ import backtrader as bt
 from strategies.ma_cross_over import SmaCross
 from utils.fetch_data import get_yfinance_data
 
-#Instantiate Cerebro engine
-cerebro = bt.Cerebro(optreturn=False)
+def runstrat():
+	#Instantiate Cerebro engine
+	cerebro = bt.Cerebro(optreturn=False)
 
-#Set data parameters and add to Cerebro
-data = get_yfinance_data('TLSA', datetime.datetime(2019, 1, 1), datetime.datetime(2024, 12, 31))
+	#Set data parameters and add to Cerebro
+	data = get_yfinance_data('TLSA', datetime.datetime(2019, 1, 1), datetime.datetime(2024, 12, 31))
 
-cerebro.adddata(data)
-cerebro.broker.setcash(10000)
-cerebro.broker.setcash(10000)
-#Add strategy to Cerebro
-cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe_ratio')
-cerebro.optstrategy(SmaCross, pfast=range(5, 20), pslow=range(50, 100))  # Add the trading strategy
+	cerebro.adddata(data)
+	cerebro.broker.setcash(10000)
+	#Default position size
+	cerebro.addsizer(bt.sizers.SizerFix, stake=3)
+	#Add strategy to Cerebro
+	cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe_ratio')
 
-#Default position size
-cerebro.addsizer(bt.sizers.SizerFix, stake=3)
+	cerebro.optstrategy(SmaCross, pfast=(5, 10, 15, 20, 30), pslow=range(50, 100))  # Add the trading strategy
+	return cerebro.run()
+
 
 if __name__ == '__main__':
-	optimized_runs = cerebro.run()
-
+	
+	optimized_runs = runstrat()
 	final_results_list = []
 	#Iterate through list of lists
 	for run in optimized_runs:

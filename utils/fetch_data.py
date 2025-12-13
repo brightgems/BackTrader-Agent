@@ -4,10 +4,103 @@ import pandas as pd
 from pathlib import Path
 import os
 from datetime import datetime
+from typing import Union
+
+def download_tushare_data(instrument:str, start_date:str, end_date:str
+                         , return_df=False, force_download=False)->Union[str, pd.DataFrame]:
+    """
+    下载指定股票的历史日线数据并重命名列
+
+    参数:
+        instrument (str): 股票代码 (如 "000001.SZ")
+        start_date (str): 开始日期 (格式 "YYYY-MM-DD")
+        end_date (str): 结束日期 (格式 "YYYY-MM-DD")
+        return_df (bool): 是否直接返回DataFrame
+        force_download (bool): 是否强制重新下载，即使文件已存在
+
+    返回:
+        pd.DataFrame 或 str: 包含历史数据的DataFrame或文件路径
+    """
+    import tushare as ts
+    # 使用绝对路径确保无论从哪个目录运行都能正确保存文件
+    current_dir = Path(os.path.abspath(__file__)).parent.parent
+    datas_dir = os.path.join(current_dir, "datas")
+    os.makedirs(datas_dir, exist_ok=True)
+    
+    if isinstance(start_date, datetime):
+       start_date = start_date.strftime('%Y-%m-%d') 
+    if isinstance(end_date, datetime):
+        end_date = end_date.strftime('%Y-%m-%d')
+    
+    file_name = f"tushare_{instrument}_{start_date[:10]}_to_{end_date[:10]}.csv"
+    file_path = os.path.join(datas_dir, file_name)
+    
+    # 如果文件已存在且不强制下载，直接返回现有文件
+    if os.path.exists(file_path) and not force_download:
+        print(f"使用现有数据文件: {file_path}")
+        if return_df:
+            df = pd.read_csv(file_path, index_col=0, parse_dates=True)
+            return df
+        return file_path
+    
+    try:
+        # 设置tushare token（可能需要先配置）
+        ts.set_token(os.getenv('TUSHARE_TOKEN'))  # 用户需要自行配置token
+        pro = ts.pro_api()
+        
+        # 根据股票代码判断市场（A股或美股）
+        if instrument.endswith('.SH') or instrument.endswith('.SZ'):
+            # 下载A股日线数据
+            df = pro.daily(ts_code=instrument, start_date=start_date.replace('-', ''), 
+                          end_date=end_date.replace('-', ''))
+        else:
+            # 美股代码，使用 us_daily 接口
+            df = pro.us_daily(ts_code=instrument, start_date=start_date.replace('-', ''), 
+                            end_date=end_date.replace('-', ''))
+        
+        if df.empty:
+            raise ValueError(f"无法下载数据，请检查代码 {instrument} 和日期范围 {start_date} 至 {end_date} 是否正确。")
+        
+        # 重命名列以适配backtrader格式
+        df = df.rename(columns={
+            'trade_date': 'datetime',
+            'open': 'Open',
+            'close': 'Close', 
+            'high': 'High',
+            'low': 'Low',
+            'vol': 'Volume'
+        })
+        
+        # 转换日期格式
+        df['datetime'] = pd.to_datetime(df['datetime'])
+        df = df.set_index('datetime')
+        
+        # 选择需要的列并按时间排序
+        df = df[['Open', 'Close', 'High', 'Low', 'Volume']].sort_index()
+        
+        if return_df:
+            return df
+        
+        df.to_csv(file_path)
+        print(f"数据已保存到: {file_path}")
+        return file_path
+        
+    except Exception as e:
+        raise Exception(f"tushare数据下载失败: {str(e)}. 请确保已配置正确的tushare token。")
+
+def get_tushare_data(instrument:str, start_date:str, end_date:str)->bt.feed.CSVDataBase:
+
+    try:
+        df = download_tushare_data(instrument, start_date, end_date, return_df=True)
+    except Exception as e:
+        raise Exception(f"获取tushare数据失败: {str(e)}")
+    data = bt.feeds.PandasData(dataname=df)
+    return data
+
 
 def download_yfinance_data(instrument:str, start_date:str, end_date:str
                              , proxy:str='http://localhost:7890'
-                             , return_df=False, force_download=False):
+                             , return_df=False, force_download=False)->Union[str, pd.DataFrame]:
     """
     下载指定金融工具的历史数据并重命名列
 
@@ -68,7 +161,7 @@ def download_yfinance_data(instrument:str, start_date:str, end_date:str
     return file_path
 
 
-def get_yfinance_data(code, start_date, end_date):
+def get_yfinance_data(code, start_date, end_date)->bt.feed.CSVDataBase:
    fpath = download_yfinance_data(code, start_date, end_date)
    data = bt.feeds.GenericCSVData(dataname=fpath,
         dtformat=("%Y-%m-%d"),
