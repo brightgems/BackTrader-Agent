@@ -124,7 +124,7 @@ class LLMServiceAdapter:
         if self.provider == 'openai':
             return os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
         elif self.provider == 'ollama':
-            return os.getenv('OLLAMA_MODEL', 'llama2')
+            return os.getenv('OLLAMA_MODEL', 'qwen3-vl')
         else:
             return 'default'
     

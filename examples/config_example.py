@@ -4,6 +4,9 @@ LLM Advisory 配置示例
 """
 
 # OpenAI API 配置示例
+import os
+
+
 OPENAI_CONFIG = {
     "api_key": "your_openai_api_key_here",  # 替换为您的OpenAI API密钥
     "base_url": "https://api.openai.com/v1",
@@ -16,7 +19,7 @@ OPENAI_CONFIG = {
 LOCAL_LLM_CONFIG = {
     "api_key": "not-required",  # 本地部署可能不需要API密钥
     "base_url": "http://localhost:11434/v1",  # Ollama默认地址
-    "model": "llama2",  # 或其他本地模型
+    "model": os.getenv('OLLAMA_MODEL', "qwen3-vl"),
     "temperature": 0.7,
     "max_tokens": 500
 }

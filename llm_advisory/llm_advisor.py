@@ -110,7 +110,7 @@ class LLMAdvisor(ABC):
     
     # LLM provider configuration
     llm_provider: str = "ollama"  # Default to ollama for local development
-    llm_model: str = "llama2"  # Default model
+    llm_model: str = "qwen3-vl"  # Default model
     
     def __init__(self, provider: str = None, model: str = None):
         self.advisor_messages_input = AdvisorMessagesInput()
@@ -145,7 +145,7 @@ class LLMAdvisor(ABC):
                 response_content = llm_adapter.generate_advisor_response(
                     system_prompt=system_prompt,
                     user_prompt=user_prompt,
-                    model="llama2",
+                    model="qwen3-vl",
                     temperature=0.7,
                     max_tokens=500
                 )

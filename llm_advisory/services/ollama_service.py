@@ -16,7 +16,7 @@ class OllamaService:
     def __init__(self):
         """Initialize Ollama client with configuration from environment"""
         self.base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
-        self.model = os.getenv('OLLAMA_MODEL', 'llama2')
+        self.model = os.getenv('OLLAMA_MODEL', 'qwen3-vl')
         
         # Test connection on initialization
         if not self.test_connection():

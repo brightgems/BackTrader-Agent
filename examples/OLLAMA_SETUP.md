@@ -63,16 +63,11 @@ Ollama 是一个强大的本地 LLM 部署工具，允许您在本地运行大�
 
 ```bash
 # 基础模型 (轻量级，适合开发)
-ollama pull llama2
-
-# 金融专用模型 (如果可用)
-ollama pull llama2:13b  # 更大模型，更好效果
+ollama pull qwen3-vl
 
 # 代码理解模型
 ollama pull codellama
 
-# 中文优化模型
-ollama pull qwen:7b
 ```
 
 ### 模型管理命令
@@ -97,7 +92,7 @@ ollama cp <source> <destination>
 ```bash
 # 使用 Ollama 配置
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama2
+OLLAMA_MODEL=qwen3-vl
 
 # 可选：备用 OpenAI 配置
 # OPENAI_BASE_URL=https://api.openai.com/v1
@@ -113,7 +108,7 @@ from llm_advisory.bt_advisory import BacktraderLLMAdvisory
 advisory = BacktraderLLMAdvisory(
     api_key="not-required",  # Ollama 不需要 API 密钥
     base_url="http://localhost:11434",
-    model="llama2"  # 使用的模型名称
+    model="qwen3-vl"  # 使用的模型名称
 )
 ```
 
@@ -156,8 +151,8 @@ test_integration()
 
 | 模型 | 内存需求 | 响应速度 | 适用场景 |
 |------|----------|----------|----------|
-| llama2:7b | ~4GB | 快 | 开发测试 |
-| llama2:13b | ~8GB | 中等 | 生产环境 |
+| qwen3-vl:7b | ~4GB | 快 | 开发测试 |
+| qwen3-vl:13b | ~8GB | 中等 | 生产环境 |
 | codellama | ~4GB | 快 | 代码分析 |
 | qwen:7b | ~4GB | 快 | 中文场景 |
 
@@ -166,7 +161,7 @@ test_integration()
 1. **内存优化**
    ```bash
    # 限制模型使用的 GPU 内存
-   OLLAMA_GPU_LAYERS=20 ollama run llama2
+   OLLAMA_GPU_LAYERS=20 ollama run qwen3-vl
    ```
 
 2. **性能监控**
@@ -190,11 +185,11 @@ test_integration()
 
 2. **模型未找到**
    ```
-   错误：模型 'llama2' 未找到
+   错误：模型 'qwen3-vl' 未找到
    ```
    **解决方案：** 下载模型
    ```bash
-   ollama pull llama2
+   ollama pull qwen3-vl
    ```
 
 3. **内存不足**
@@ -239,7 +234,7 @@ test_integration()
 ```bash
 # 创建 Modelfile
 cat > Modelfile << EOF
-FROM llama2
+FROM qwen3-vl
 
 # 设置系统提示词
 SYSTEM """你是一名专业的量化交易分析师..."""

@@ -3,6 +3,12 @@ Ollama Advisory 示例
 使用本地 Ollama 模型进行交易决策
 """
 
+import sys
+import os
+
+# 添加项目根目录到 Python 路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import backtrader as bt
 from datetime import datetime
 from llm_advisory.advisors import (
@@ -31,7 +37,7 @@ def setup_ollama_environment():
         print(f"错误信息: {service_status['details'].get('error', '未知错误')}")
         print("\n请确保:")
         print("1. 已安装 Ollama: https://ollama.ai")
-        print("2. 已下载模型: ollama pull llama2")
+        print("2. 已下载模型: ollama pull qwen3-vl")
         print("3. Ollama 服务正在运行")
         return False
     
@@ -45,7 +51,7 @@ class OllamaAdvisoryStrategy(bt.Strategy):
         ("print_advice", True),
         ("lookback_period", 15),
         ("provider", "ollama"),  # 指定使用 ollama
-        ("model", "llama2"),     # 指定模型
+        ("model", os.getenv('OLLAMA_MODEL', "qwen3-vl")),     # 指定模型
     )
     
     def log(self, txt, dt=None):
@@ -67,7 +73,7 @@ class OllamaAdvisoryStrategy(bt.Strategy):
         self.bt_llm_advisory = BacktraderLLMAdvisory(
             api_key="not-required",  # Ollama 不需要 API 密钥
             base_url="http://localhost:11434",  # Ollama 默认地址
-            model="llama2"  # 默认模型
+            model=os.getenv('OLLAMA_MODEL', "qwen3-vl") 
         )
         
         # 添加多种 advisor，明确指定使用 Ollama
@@ -276,7 +282,7 @@ def run_demo_mode():
     print("演示完成！")
     print("要使用真实 Ollama 服务，请:")
     print("1. 安装 Ollama: https://ollama.ai")
-    print("2. 下载模型: ollama pull llama2")
+    print("2. 下载模型: ollama pull qwen3-vl")
     print("3. 确保 Ollama 服务运行")
 
 

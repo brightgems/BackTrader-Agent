@@ -5,6 +5,10 @@ Ollama 服务验证脚本
 
 import os
 import sys
+
+# 添加项目根目录到 Python 路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from llm_advisory.llm_advisor import check_llm_service_availability
 from llm_advisory.services.ollama_service import get_ollama_service
 
@@ -30,7 +34,7 @@ def test_ollama_connection():
             for model in models:
                 print(f"   - {model}")
         else:
-            print("⚠️  未发现模型，请下载模型: ollama pull llama2")
+            print("⚠️  未发现模型，请下载模型: ollama pull qwen3-vl")
             return False
         
         return True
@@ -54,7 +58,7 @@ def test_chat_completion():
         
         response = service.create_chat_completion(
             messages=messages,
-            model="llama2",
+            model="qwen3-vl",
             temperature=0.7,
             max_tokens=100
         )
@@ -120,7 +124,7 @@ def test_trading_prompt():
         response = service.generate_advisor_response(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
-            model="llama2"
+            model="qwen3-vl"
         )
         
         print("✅ 交易提示词测试成功")
@@ -179,7 +183,7 @@ def main():
         print("❌ 部分测试失败，请检查配置。")
         print("\n常见问题:")
         print("1. 确保 Ollama 已安装并运行")
-        print("2. 下载模型: ollama pull llama2")
+        print("2. 下载模型: ollama pull qwen3-vl")
         print("3. 检查 .env 文件配置")
         print("4. 查看详细的错误信息")
 
