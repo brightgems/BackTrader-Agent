@@ -58,7 +58,7 @@ def test_chat_completion():
         
         response = service.create_chat_completion(
             messages=messages,
-            model="qwen3-vl",
+            model=os.getenv("OLLAMA_MODEL", default="qwen3-vl"),
             temperature=0.7,
             max_tokens=100
         )

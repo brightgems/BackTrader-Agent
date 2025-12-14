@@ -77,15 +77,15 @@ class OllamaService:
                 raise Exception(f"Ollama API error: {response.status_code} - {response.text}")
             
             result = response.json()
-            
+            content = result.get("response") if result.get("response") else result.get("thinking") 
             return {
-                "content": result.get("response", ""),
+                "content": content,
                 "role": "assistant",  # Ollama doesn't return role
                 "finish_reason": "stop",  # Ollama doesn't provide finish reason
                 "usage": {
                     "prompt_tokens": len(prompt.split()),  # Approximate
-                    "completion_tokens": len(result.get("response", "").split()),  # Approximate
-                    "total_tokens": len(prompt.split()) + len(result.get("response", "").split())
+                    "completion_tokens": len(content.split()),  # Approximate
+                    "total_tokens": len(prompt.split()) + len(content.split())
                 }
             }
             
