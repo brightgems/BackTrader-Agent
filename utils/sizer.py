@@ -1,5 +1,24 @@
 import backtrader as bt
 
+
+class FixedReserveCash(bt.Sizer):
+    params = (('reserve', 0),)  # 要保留的现金金额
+    
+    def _getsizing(self, comminfo, cash, data, isbuy):
+        if isbuy:
+            # 计算可用资金
+            available = cash - self.p.reserve
+            if available <= 0:
+                return 0  # 没有足够资金
+                
+            # 计算可买数量
+            price = data.close[0]
+            size = int(available / price)
+            return size
+        else:
+            # 卖出时返回当前位置
+            return self.broker.getposition(data).size
+
 class PercentSizer(bt.Sizer):
     params = (
         ('percents', 20),  # 默认使用20%的资金

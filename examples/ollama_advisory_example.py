@@ -70,11 +70,7 @@ class OllamaAdvisoryStrategy(bt.Strategy):
         self.order = None
         
         # 初始化 LLM Advisory，指定使用 Ollama
-        self.bt_llm_advisory = BacktraderLLMAdvisory(
-            api_key="not-required",  # Ollama 不需要 API 密钥
-            base_url="http://localhost:11434",  # Ollama 默认地址
-            model=os.getenv('OLLAMA_MODEL', "qwen3-vl") 
-        )
+        self.bt_llm_advisory = BacktraderLLMAdvisory()
         
         # 添加多种 advisor，明确指定使用 Ollama
         # 1. 趋势 advisor
