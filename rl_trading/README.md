@@ -1,0 +1,1 @@
+https://github.com/ZiadFrancis/ReinforcementTrading_Part_1/blob/main/Requirements.txt
