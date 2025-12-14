@@ -12,6 +12,31 @@ INDICATOR_LOOKBACK_PERIOD = 10
 class BacktraderLLMAdvisory(LLMAdvisory):
     """LLM Advisory for backtrader"""
 
+    def __init__(self):
+        super().__init__()
+        self.advisor_names = {}  # 存储advisor名称映射
+
+    def add_advisor(self, name: str, advisor):
+        """Add an advisor with a name to the advisory system
+        
+        Args:
+            name: The name identifier for the advisor
+            advisor: The advisor instance to add
+        """
+        self.all_advisors.append(advisor)
+        self.advisor_names[name] = advisor
+
+    def get_advisor_by_name(self, name: str):
+        """Get an advisor by its name
+        
+        Args:
+            name: The name of the advisor to retrieve
+            
+        Returns:
+            The advisor instance or None if not found
+        """
+        return self.advisor_names.get(name)
+
     def init_strategy(
         self,
         strategy: Strategy,

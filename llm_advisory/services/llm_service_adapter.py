@@ -52,13 +52,12 @@ class LLMServiceAdapter:
     def _auto_detect_provider(self) -> str:
         """Auto-detect the best available provider"""
         # Check environment variables for configuration
-        if os.getenv('OPENAI_API_TOKEN'):
+        if os.getenv('LLM_PROVIDER')=='openai':
             return 'openai'
         elif self._test_ollama_connection():
             return 'ollama'
         else:
-            # Default to ollama for development
-            return 'ollama'
+            raise ValueError("No supported LLM provider found.")
     
     def _test_ollama_connection(self) -> bool:
         """Test if Ollama is available"""

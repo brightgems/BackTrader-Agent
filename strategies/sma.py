@@ -2,21 +2,20 @@ import os
 import backtrader as bt
 from datetime import datetime
 import sys
-
+from utils.sizer import PercentSizer
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from llm_advisory.bt_advisory import BacktraderLLMAdvisory
 from llm_advisory.advisors import (
     BacktraderTrendAdvisor,
     BacktraderTechnicalAnalysisAdvisor
 )
 from utils.fetch_data import get_yfinance_data
 
-class SimpleLLMStrategy(bt.Strategy):
-    """简单的LLM Advisory示例策略"""
+class SingleMovingAvgStrategy(bt.Strategy):
+    """单均线示例策略"""
     
     params = (
+        ("short_ma_period", 20),
         ("print_log", True),
     )
     
@@ -29,27 +28,9 @@ class SimpleLLMStrategy(bt.Strategy):
     def __init__(self):
         # 基本指标
         self.dataclose = self.datas[0].close
-        self.sma = bt.indicators.SimpleMovingAverage(self.datas[0], period=20)
+        self.sma = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.params.short_ma_period)
         
         self.order = None
-        
-        # 创建LLM Advisory
-        self.advisory = BacktraderLLMAdvisory()
-        
-        # 添加趋势advisor
-        self.trend_advisor = BacktraderTrendAdvisor(
-            short_ma_period=10,
-            long_ma_period=30,
-            lookback_period=15
-        )
-        self.advisory.add_advisor("trend", self.trend_advisor)
-        
-        # 添加技术分析advisor
-        self.tech_advisor = BacktraderTechnicalAnalysisAdvisor()
-        self.advisory.add_advisor("technical", self.tech_advisor)
-        
-        # 初始化
-        self.advisory.init_strategy(self)
         
         # 交易计数器
         self.trade_count = 0
@@ -94,9 +75,10 @@ def demo_llm_advisory():
     print("=== LLM Advisory 基础演示 ===")
     
     cerebro = bt.Cerebro()
-    
+    init_cash = 10000.0
+
     # 基本设置
-    cerebro.broker.setcash(50000.0)
+    cerebro.broker.setcash(init_cash)
     cerebro.broker.setcommission(0.001)
     
     # 添加数据（使用较短的时间范围用于演示）
@@ -107,9 +89,9 @@ def demo_llm_advisory():
     print(f"获取 {symbol} 数据...")
     data = get_yfinance_data(symbol, start_date, end_date)
     cerebro.adddata(data)
-    
+    cerebro.addsizer(PercentSizer, percents=90)
     # 添加策略
-    cerebro.addstrategy(SimpleLLMStrategy)
+    cerebro.addstrategy(SingleMovingAvgStrategy)
     
     # 运行回测
     print("运行演示回测...")
@@ -117,10 +99,10 @@ def demo_llm_advisory():
     
     # 基本结果
     final_value = cerebro.broker.getvalue()
-    roi = (final_value - 50000) / 50000 * 100
+    roi = (final_value - init_cash) / init_cash * 100
     
     print(f"\n演示结果:")
-    print(f"起始资金: 50,000.00")
+    print(f"起始资金: ", init_cash)
     print(f"最终资产: {final_value:.2f}")
     print(f"收益率: {roi:.2f}%")
     
