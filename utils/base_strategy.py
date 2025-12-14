@@ -36,7 +36,17 @@ class BaseStrategy(bt.Strategy):
             self.log(f"订单失败: {order.status}")
             
         self.order = None
-    
+        
+    def notify_trade(self, trade):
+        # 检查交易trade是关闭
+        if not trade.isclosed:
+            return
+
+        self.log(
+            "交易操盘利润OPERATION PROFIT, 毛利GROSS %.2f, 净利NET %.2f"
+            % (trade.pnl, trade.pnlcomm)
+        )
+        
     def stop(self):
         """结束时的统计"""
         final_value = self.broker.getvalue()
