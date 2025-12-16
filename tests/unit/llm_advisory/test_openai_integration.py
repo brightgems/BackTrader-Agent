@@ -14,7 +14,7 @@ try:
     from llm_advisory.services.openai_service import OpenAIService
     OPENAI_SERVICE_AVAILABLE = True
 except ValueError as e:
-    if "OPENAI_API_TOKEN not configured" in str(e):
+    if "OPENAI_API_KEY not configured" in str(e):
         OPENAI_SERVICE_AVAILABLE = False
         OpenAIService = None
     else:
@@ -32,7 +32,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         # Test with mock environment variables
         with patch.dict(os.environ, {
             'OPENAI_BASE_URL': 'https://api.openai.com/v1',
-            'OPENAI_API_TOKEN': 'test_token'
+            'OPENAI_API_KEY': 'test_token'
         }):
             service = OpenAIService()
             self.assertEqual(service.base_url, 'https://api.openai.com/v1')
@@ -42,7 +42,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         """Test OpenAIService with missing API token"""
         with patch.dict(os.environ, {
             'OPENAI_BASE_URL': 'https://api.openai.com/v1',
-            'OPENAI_API_TOKEN': 'your_openai_api_token_here'
+            'OPENAI_API_KEY': 'your_OPENAI_API_KEY_here'
         }):
             with self.assertRaises(ValueError):
                 OpenAIService()
@@ -69,7 +69,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         # Create service with test config
         with patch.dict(os.environ, {
             'OPENAI_BASE_URL': 'https://api.openai.com/v1',
-            'OPENAI_API_TOKEN': 'test_token'
+            'OPENAI_API_KEY': 'test_token'
         }):
             service = OpenAIService()
             service.client = mock_client
@@ -145,8 +145,8 @@ class TestOpenAIConfiguration(unittest.TestCase):
         
         # Check for required configuration
         self.assertIn("OPENAI_BASE_URL", env_content)
-        self.assertIn("OPENAI_API_TOKEN", env_content)
-        self.assertNotIn("your_openai_api_token_here", env_content, 
+        self.assertIn("OPENAI_API_KEY", env_content)
+        self.assertNotIn("your_OPENAI_API_KEY_here", env_content, 
                         "Please replace placeholder with actual API token")
 
 

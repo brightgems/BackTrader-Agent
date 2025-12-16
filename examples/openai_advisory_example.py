@@ -1,3 +1,4 @@
+import os
 import backtrader as bt
 from datetime import datetime
 from llm_advisory.advisors import (
@@ -33,11 +34,7 @@ class LLMAdvisoryStrategy(bt.Strategy):
         self.order = None
         
         # 初始化LLM Advisory
-        self.bt_llm_advisory = BacktraderLLMAdvisory(
-            api_key="your_openai_api_key_here",  # 需要替换为实际的API密钥
-            base_url="https://api.openai.com/v1",  # OpenAI API地址
-            model="gpt-4"  # 使用GPT-4模型
-        )
+        self.bt_llm_advisory = BacktraderLLMAdvisory()
         
         # 添加多种advisor
         # 1. 趋势advisor
@@ -58,16 +55,16 @@ class LLMAdvisoryStrategy(bt.Strategy):
         )
         self.bt_llm_advisory.add_advisor("candle", self.candle_advisor)
         
-        # 4. 反馈advisor
-        self.feedback_advisor = BacktraderFeedbackAdvisor()
-        self.bt_llm_advisory.add_advisor("feedback", self.feedback_advisor)
+        # # 4. 反馈advisor
+        # self.feedback_advisor = BacktraderFeedbackAdvisor()
+        # self.bt_llm_advisory.add_advisor("feedback", self.feedback_advisor)
         
-        # 5. 个性化advisor（交易专家角色）
-        self.persona_advisor = BacktraderPersonaAdvisor(
-            person_name="Professional Trader",
-            personality="你是一名经验丰富的专业交易员，擅长技术分析和风险管理"
-        )
-        self.bt_llm_advisory.add_advisor("persona", self.persona_advisor)
+        # # 5. 个性化advisor（交易专家角色）
+        # self.persona_advisor = BacktraderPersonaAdvisor(
+        #     person_name="Professional Trader",
+        #     personality="你是一名经验丰富的专业交易员，擅长技术分析和风险管理"
+        # )
+        # self.bt_llm_advisory.add_advisor("persona", self.persona_advisor)
         
         # 初始化策略
         self.bt_llm_advisory.init_strategy(
@@ -230,7 +227,6 @@ def run_llm_advisory_backtest():
 if __name__ == "__main__":
     print("LLM Advisory 交易示例")
     print("注意: 运行前请确保设置正确的OpenAI API密钥")
-    print("在代码中替换 'your_openai_api_key_here' 为您的实际API密钥")
     
     # 运行回测
     run_llm_advisory_backtest()

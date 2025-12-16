@@ -15,12 +15,12 @@ class OpenAIService:
     def __init__(self):
         """Initialize OpenAI client with configuration from environment"""
         self.base_url = os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1')
-        self.api_token = os.getenv('OPENAI_API_TOKEN')
+        self.api_token = os.getenv('OPENAI_API_KEY')
         
-        if not self.api_token or self.api_token == 'your_openai_api_token_here':
+        if not self.api_token or self.api_token == 'your_OPENAI_API_KEY_here':
             raise ValueError(
-                "OPENAI_API_TOKEN not configured. "
-                "Please set OPENAI_API_TOKEN in your .env file"
+                "OPENAI_API_KEY not configured. "
+                "Please set OPENAI_API_KEY in your .env file"
             )
         
         self.client = OpenAI(

@@ -5,6 +5,7 @@ Ollama Advisory 示例
 
 import sys
 import os
+import time
 
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -93,7 +94,7 @@ class OllamaAdvisoryStrategy(bt.Strategy):
         
         # 4. 个性化 advisor（本地专家角色）
         self.persona_advisor = BacktraderPersonaAdvisor(
-            person_name="本地量化交易专家",
+            name="本地量化交易专家",
             personality="""你是一名本地部署的量化交易专家，专门分析股票市场。
             基于提供的技术指标和价格数据，给出明确的交易建议。
             考虑趋势、支撑阻力位、成交量等因素。
@@ -216,7 +217,7 @@ def run_ollama_backtest():
     cerebro = bt.Cerebro()
     
     # 基本设置
-    initial_cash = 50000.0
+    initial_cash = 10000.0
     cerebro.broker.setcash(initial_cash)
     cerebro.broker.setcommission(0.001)
     
@@ -272,15 +273,11 @@ def run_demo_mode():
     
     # 使用简化策略演示
     cerebro.addstrategy(OllamaAdvisoryStrategy, print_advice=False)
-    
+    time_start = time.time()
     results = cerebro.run()
-    
+    time_end = time.time()
+    print(f"回测耗时: {time_end - time_start:.2f}秒")
     print("演示完成！")
-    print("要使用真实 Ollama 服务，请:")
-    print("1. 安装 Ollama: https://ollama.ai")
-    print("2. 下载模型: ollama pull qwen3-vl")
-    print("3. 确保 Ollama 服务运行")
-
 
 if __name__ == "__main__":
     print("Ollama Advisory 示例")

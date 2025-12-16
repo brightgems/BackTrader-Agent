@@ -96,7 +96,7 @@ OLLAMA_MODEL=qwen3-vl
 
 # 可选：备用 OpenAI 配置
 # OPENAI_BASE_URL=https://api.openai.com/v1
-# OPENAI_API_TOKEN=your_token_here
+# OPENAI_API_KEY=your_token_here
 ```
 
 ### Python 代码配置

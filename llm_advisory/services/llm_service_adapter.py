@@ -141,7 +141,7 @@ class LLMServiceAdapter:
         providers = []
         
         # Check OpenAI availability
-        if os.getenv('OPENAI_API_TOKEN'):
+        if os.getenv('OPENAI_API_KEY'):
             providers.append('openai')
         
         # Check Ollama availability

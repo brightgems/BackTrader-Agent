@@ -6,11 +6,6 @@ import sys
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from llm_advisory.bt_advisory import BacktraderLLMAdvisory
-from llm_advisory.advisors import (
-    BacktraderTrendAdvisor,
-    BacktraderTechnicalAnalysisAdvisor
-)
 from utils.fetch_data import get_yfinance_data
 
 
@@ -51,22 +46,6 @@ class AdvisoryTradingStrategyV2(bt.Strategy):
             print(f"{dt.isoformat()}, {txt}")
     
     def __init__(self):
-        # 创建LLM Advisory系统
-        self.advisory = BacktraderLLMAdvisory()
-        
-        # 添加多个advisor
-        self.trend_advisor = BacktraderTrendAdvisor(
-            short_ma_period=10,
-            long_ma_period=30,
-            lookback_period=15
-        )
-        self.advisory.add_advisor("trend", self.trend_advisor)
-        
-        self.tech_advisor = BacktraderTechnicalAnalysisAdvisor()
-        self.advisory.add_advisor("technical", self.tech_advisor)
-        
-        self.advisory.init_strategy(self)
-        
         # 跟踪状态
         self.order = None
         self.current_signal = "none"

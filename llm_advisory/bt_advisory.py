@@ -37,6 +37,79 @@ class BacktraderLLMAdvisory(LLMAdvisory):
         """
         return self.advisor_names.get(name)
 
+    def get_advice(self, advisor_name: str):
+        """Get trading advice from a specific advisor
+        
+        Args:
+            advisor_name: The name of the advisor to get advice from
+            
+        Returns:
+            Dictionary containing signal, confidence, and reasoning
+        """
+        advisor = self.get_advisor_by_name(advisor_name)
+        if not advisor:
+            return {"signal": "none", "reasoning": f"Advisor '{advisor_name}' not found"}
+        
+        try:
+            # Create a basic state for the advisor
+            from llm_advisory.llm_advisor import LLMAdvisorUpdateStateData, LLMMessage
+            from llm_advisory.pydantic_models import LLMAdvisorDataArtefact
+            
+            # Create initial state with proper data artefacts
+            initial_message = LLMMessage(
+                role="system",
+                content="Provide trading advice based on current market conditions"
+            )
+            
+            # Create valid data artefacts
+            data_artefacts = [
+                LLMAdvisorDataArtefact(
+                    description="Strategy Data",
+                    artefact={"status": "initializing"},
+                    output_mode="text"
+                )
+            ]
+            
+            state = LLMAdvisorUpdateStateData(
+                messages=[initial_message],
+                data=data_artefacts,
+                metadata=self.metadata
+            )
+            
+            # Update state with advisor-specific data
+            updated_state = advisor.update_state(state)
+            
+            # Extract the last message as the advice
+            if updated_state.messages:
+                last_message = updated_state.messages[-1]
+                reasoning = last_message.content
+                
+                # Parse the response to extract signal and confidence
+                signal = "none"
+                confidence = 0.0
+                
+                # Basic parsing of common signal keywords
+                if any(word in reasoning.lower() for word in ["bullish", "buy", "上涨", "看涨"]):
+                    signal = "bullish"
+                    confidence = 0.7
+                elif any(word in reasoning.lower() for word in ["bearish", "sell", "下跌", "看跌"]):
+                    signal = "bearish"
+                    confidence = 0.7
+                elif any(word in reasoning.lower() for word in ["neutral", "hold", "中性"]):
+                    signal = "neutral"
+                    confidence = 0.5
+                
+                return {
+                    "signal": signal,
+                    "confidence": confidence,
+                    "reasoning": reasoning
+                }
+            else:
+                return {"signal": "none", "reasoning": "No response from advisor"}
+                
+        except Exception as e:
+            return {"signal": "none", "reasoning": f"Error getting advice: {str(e)}"}
+
     def init_strategy(
         self,
         strategy: Strategy,

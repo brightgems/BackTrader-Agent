@@ -26,9 +26,15 @@ class LLMMessage(BaseModel):
 
 
 class LLMAdvisorDataArtefact(BaseModel):
-    """Data artefact for LLM advisor"""
+    """Data artefact for LLM advisor
+
+    The artefact can be a mapping, list, or simple string/value depending on
+    the data provided by different advisors (strategy description, tables,
+    indicator lists, etc.). Use a flexible `Any` type to avoid validation
+    errors when passing simple strings or complex structures.
+    """
     description: str = Field(description="Description of the data artefact")
-    artefact: Dict[str, Any] = Field(description="The actual data artefact")
+    artefact: Any = Field(description="The actual data artefact")
     output_mode: str = Field(default="text", description="Output format for the artefact")
 
 
@@ -145,7 +151,7 @@ class LLMAdvisor(ABC):
                 response_content = llm_adapter.generate_advisor_response(
                     system_prompt=system_prompt,
                     user_prompt=user_prompt,
-                    model="qwen3-vl",
+                    model=self.llm_model,
                     temperature=0.7,
                     max_tokens=500
                 )
