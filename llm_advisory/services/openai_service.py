@@ -14,8 +14,15 @@ class OpenAIService:
     
     def __init__(self):
         """Initialize OpenAI client with configuration from environment"""
+        # 重新加载环境变量确保最新配置生效
+        load_dotenv(override=True)
+        
         self.base_url = os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1')
         self.api_token = os.getenv('OPENAI_API_KEY')
+        self.openai_model = os.getenv('OPENAI_openai_model', 'gpt-3.5-turbo')
+        
+        print(f"Debug: base_url={self.base_url}")
+        print(f"Debug: model={self.openai_model}")
         
         if not self.api_token or self.api_token == 'your_OPENAI_API_KEY_here':
             raise ValueError(
@@ -49,16 +56,33 @@ class OpenAIService:
             Dictionary containing the completion response
         """
         try:
+            # 确保所有消息内容都是字符串，避免编码问题
+            encoded_messages = []
+            for message in messages:
+                content = message.get("content", "")
+                # 确保内容编码为UTF-8字符串
+                if isinstance(content, bytes):
+                    content = content.decode('utf-8', errors='ignore')
+                encoded_messages.append({
+                    "role": message.get("role", "user"),
+                    "content": content
+                })
+            
             response = self.client.chat.completions.create(
-                model=model,
-                messages=messages,
+                model=self.openai_model,
+                messages=encoded_messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 **kwargs
             )
             
+            # 确保响应内容正确处理编码
+            content = response.choices[0].message.content
+            if isinstance(content, bytes):
+                content = content.decode('utf-8', errors='ignore')
+            
             return {
-                "content": response.choices[0].message.content,
+                "content": content,
                 "role": response.choices[0].message.role,
                 "finish_reason": response.choices[0].finish_reason,
                 "usage": {
@@ -68,6 +92,9 @@ class OpenAIService:
                 } if response.usage else None
             }
             
+        except UnicodeEncodeError as e:
+            # 处理字符编码错误
+            raise Exception(f"OpenAI API call failed: Character encoding error. Please check your environment encoding settings. {str(e)}")
         except Exception as e:
             raise Exception(f"OpenAI API call failed: {str(e)}")
     
@@ -104,13 +131,11 @@ class OpenAIService:
             True if connection is successful, False otherwise
         """
         try:
-            # Simple test with a small completion
-            response = self.create_chat_completion(
-                messages=[{"role": "user", "content": "Say 'hello'"}],
-                max_tokens=5
-            )
+            # 使用简单的模型列表查询测试
+            response = self.client.models.list()
             return True
-        except Exception:
+        except Exception as e:
+            print(f"连接测试失败: {e}")
             return False
 
 

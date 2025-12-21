@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import os
 from typing import Any, Dict, List, Optional, Type
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -121,10 +122,14 @@ class LLMAdvisor(ABC):
     def __init__(self, provider: str = None, model: str = None):
         self.advisor_messages_input = AdvisorMessagesInput()
         
-        if provider:
-            self.llm_provider = provider
+        self.llm_provider = provider or os.getenv('LLM_PROVIDER')
         if model:
             self.llm_model = model
+        else:
+            if self.llm_provider == "openai":
+                self.llm_model = os.getenv("OPENAI_MODEL") or self.llm_model
+            elif self.llm_provider == "ollama":
+                self.llm_model = os.getenv("OLLAMA_MODEL") or self.llm_model
         
     def update_state(self, state: LLMAdvisorUpdateStateData) -> LLMAdvisorUpdateStateData:
         """Update the advisor state with new data
@@ -167,7 +172,7 @@ class LLMAdvisor(ABC):
                 # Fallback to default response if LLM service fails
                 response_message = LLMMessage(
                     role="assistant",
-                    content=f"LLM service error: {str(e)}. Using fallback response.",
+                    content=f"LLM service error: {str(e)}. {self.llm_model},Using fallback response.",
                     timestamp=datetime.now()
                 )
         else:

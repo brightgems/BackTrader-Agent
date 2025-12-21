@@ -234,8 +234,8 @@ def run_ollama_backtest():
     cerebro.addstrategy(OllamaAdvisoryStrategy, print_advice=True)
     
     # 添加分析器
-    cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
-    cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
+    # cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
+    # cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="trades")
     
     # 运行回测

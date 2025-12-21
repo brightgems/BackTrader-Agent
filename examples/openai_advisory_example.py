@@ -46,25 +46,25 @@ class LLMAdvisoryStrategy(bt.Strategy):
         self.bt_llm_advisory.add_advisor("trend", self.trend_advisor)
         
         # 2. 技术分析advisor
-        self.tech_advisor = BacktraderTechnicalAnalysisAdvisor()
-        self.bt_llm_advisory.add_advisor("technical", self.tech_advisor)
+        # self.tech_advisor = BacktraderTechnicalAnalysisAdvisor()
+        # self.bt_llm_advisory.add_advisor("technical", self.tech_advisor)
         
         # 3. 蜡烛图模式advisor
-        self.candle_advisor = BacktraderCandlePatternAdvisor(
-            lookback_period=self.params.lookback_period
-        )
-        self.bt_llm_advisory.add_advisor("candle", self.candle_advisor)
+        # self.candle_advisor = BacktraderCandlePatternAdvisor(
+        #     lookback_period=self.params.lookback_period
+        # )
+        # self.bt_llm_advisory.add_advisor("candle", self.candle_advisor)
         
         # # 4. 反馈advisor
-        # self.feedback_advisor = BacktraderFeedbackAdvisor()
-        # self.bt_llm_advisory.add_advisor("feedback", self.feedback_advisor)
+        self.feedback_advisor = BacktraderFeedbackAdvisor()
+        self.bt_llm_advisory.add_advisor("feedback", self.feedback_advisor)
         
         # # 5. 个性化advisor（交易专家角色）
-        # self.persona_advisor = BacktraderPersonaAdvisor(
-        #     person_name="Professional Trader",
-        #     personality="你是一名经验丰富的专业交易员，擅长技术分析和风险管理"
-        # )
-        # self.bt_llm_advisory.add_advisor("persona", self.persona_advisor)
+        self.persona_advisor = BacktraderPersonaAdvisor(
+            name="詹姆斯·西蒙斯",
+            personality="你是一名经验丰富的专业交易员，擅长技术分析和风险管理"
+        )
+        self.bt_llm_advisory.add_advisor("persona", self.persona_advisor)
         
         # 初始化策略
         self.bt_llm_advisory.init_strategy(
@@ -119,7 +119,7 @@ class LLMAdvisoryStrategy(bt.Strategy):
         
         # 获取所有advisor的建议
         advice_results = {}
-        for advisor_name in ["trend", "technical", "candle", "persona"]:
+        for advisor_name in self.bt_llm_advisory.advisor_names:
             try:
                 advice = self.bt_llm_advisory.get_advice(advisor_name)
                 advice_results[advisor_name] = advice
@@ -197,8 +197,8 @@ def run_llm_advisory_backtest():
     
     # 添加分析器
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
-    cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
-    cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="trades")
+    # cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
+    # cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="trades")
     
     # 运行回测
     print("运行回测...")
