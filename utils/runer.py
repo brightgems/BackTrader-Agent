@@ -1,10 +1,14 @@
 
 import backtrader as bt
+from typing import List, Text, Union
 from utils.fetch_data import get_yfinance_data
+from .synthetic_data import get_aligned_synthetic_data
+
 
 
 def run_strategy(strategy, strategy_args={}, 
-                 symbol='INTC', start_date='2023-01-01', end_date='2024-06-30',
+                 symbol:Union[List[Text], Text]='INTC', 
+                 start_date='2023-01-01', end_date='2024-06-30',
                  initial_cash = 10000.0, commission=0.001,
                  sizer=None, sizer_params={}):
     """运行advisory信号策略演示"""
@@ -19,8 +23,26 @@ def run_strategy(strategy, strategy_args={},
     
     # 添加数据
     print(f"获取 {symbol} 数据...")
-    data = get_yfinance_data(symbol, start_date, end_date)
-    cerebro.adddata(data)
+    if isinstance(symbol, list):
+        symbols = symbol
+    else:
+        symbols = [symbol]
+    datas = []
+    for sym in symbols:
+        data = get_yfinance_data(sym, start_date, end_date)
+        datas.append(data)
+        
+    if len(symbols) == 2 and symbols[0] == 'QQQ':
+        # 获取 DataFrame 数据进行合成
+        from utils.fetch_data import download_yfinance_data
+        qqq_df = download_yfinance_data(symbols[0], start_date, end_date, return_df=True)
+        tqqq_df = download_yfinance_data(symbols[1], start_date, end_date, return_df=True)
+        synthetic_df = get_aligned_synthetic_data(qqq_df, tqqq_df)
+        
+        # 将合成后的 DataFrame 转换回 backtrader 数据格式
+        datas[1] = bt.feeds.PandasData(dataname=synthetic_df)
+    for data in datas:
+        cerebro.adddata(data)
     if sizer is not None:
         if sizer == 'fixed':
             cerebro.addsizer(bt.sizers.FixedSize, **sizer_params)
