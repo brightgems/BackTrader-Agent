@@ -121,15 +121,6 @@ def parse_args():
     parser.add_argument('--cash', default=10000, type=int,
                         help='Starting Cash')
 
-    parser.add_argument('--runnext', action='store_true',
-                        help='Use next by next instead of runonce')
-
-    parser.add_argument('--nopreload', action='store_true',
-                        help='Do not preload the data')
-
-    parser.add_argument('--oldsync', action='store_true',
-                        help='Use old data synchronization method')
-
     parser.add_argument('--commperc', default=0.005, type=float,
                         help='Percentage commission (0.005 is 0.5%%')
 
@@ -139,8 +130,6 @@ def parse_args():
     parser.add_argument('--plot', '-p', default=True, action='store_true',
                         help='Plot the read data')
 
-    parser.add_argument('--numfigs', '-n', default=1,
-                        help='Plot using numfigs figures')
     return parser.parse_args()
 
 if __name__ == '__main__':

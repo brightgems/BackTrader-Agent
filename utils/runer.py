@@ -53,8 +53,7 @@ def run_strategy(strategy, strategy_args={},
         else:
             raise ValueError(f"Invalid sizer value: {sizer}. Must be one of ['fixed', 'fixed_reverser'].")
     # 添加策略 - 传递所有参数
-    cerebro.addstrategy(strategy=strategy, 
-                       *strategy_args)
+    cerebro.addstrategy(strategy=strategy, **strategy_args)
     
     # 分析器
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
