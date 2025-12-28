@@ -189,7 +189,20 @@ def _display_optimization_results(study):
     if len(trials_df) > 0:
         sorted_trials = trials_df.nlargest(3, 'value')
         print("\n前三名参数组合:")
-        print(sorted_trials[['number', 'value'] + list(study.best_params.keys())])
+        
+        # 获取实际存在于DataFrame中的参数列
+        available_columns = []
+        param_keys = list(study.best_params.keys())
+        for param in param_keys:
+            if param in trials_df.columns:
+                available_columns.append(param)
+        
+        # 只显示存在的列
+        if available_columns:
+            display_columns = ['number', 'value'] + available_columns
+            print(sorted_trials[display_columns])
+        else:
+            print("无可用参数列显示")
 
 def parse_args():
     parser = argparse.ArgumentParser(description='MultiData Strategy')
