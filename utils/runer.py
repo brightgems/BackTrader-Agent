@@ -58,6 +58,7 @@ def run_strategy(strategy, strategy_args={},
     # 分析器
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name="drawdown")
+    cerebro.addanalyzer(bt.analyzers.Returns, _name="returns")
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name="trades")
     
     print("运行advisory信号策略回测...")
@@ -67,7 +68,7 @@ def run_strategy(strategy, strategy_args={},
     strat = results[0]
     final_value = cerebro.broker.getvalue()
     roi = (final_value - initial_cash) / initial_cash * 100
-    
+
     print(f"\n策略结果:")
     print(f"起始资金: {initial_cash:,.2f}")
     print(f"最终资产: {final_value:,.2f}")
@@ -76,11 +77,19 @@ def run_strategy(strategy, strategy_args={},
     # 输出分析器结果
     sharpe = strat.analyzers.sharpe.get_analysis()
     drawdown = strat.analyzers.drawdown.get_analysis()
+    returns = strat.analyzers.returns.get_analysis()
+    trades_analysis = strat.analyzers.trades.get_analysis()
     
+    annual_return = returns.get('rnorm100', 0)  # 年化收益率
     sharpe_ratio = sharpe.get('sharperatio')
-    print(f"夏普比率: {sharpe_ratio:.2f}" if sharpe_ratio is not None else "夏普比率: 无数据")
-    
     max_drawdown = drawdown.get('max', {}).get('drawdown')
+    total_trades = trades_analysis.get('total', {}).get('total', 0)
+    win_rate = trades_analysis.get('won', {}).get('total', 0) / max(total_trades, 1)
+    
+    print(f"年化收益率: {annual_return:.2f}%" if annual_return is not None else "年化收益率: 无数据")
+    print(f"夏普比率: {sharpe_ratio:.2f}" if sharpe_ratio is not None else "夏普比率: 无数据")
     print(f"最大回撤: {max_drawdown:.2f}%" if max_drawdown is not None else "最大回撤: 无数据")
+    print(f"总交易次数: {total_trades}")
+    print(f"胜率: {win_rate:.2f}%")
     
     return cerebro

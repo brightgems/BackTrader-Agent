@@ -39,7 +39,7 @@ def get_aligned_synthetic_data(qqq_df, tqqq_df, annual_expense=0.02):
     # 3. 为了让曲线无缝衔接，以真实 TQQQ 上市首日的价格为基准，逆向推算早期价格
     # 初始价格设为真实 TQQQ 第一天的开盘价
     base_price = tqqq_df.iloc[0]['Open']
-    
+    breakpoint()
     # 逆向累乘计算价格序列
     # 我们先正向计算累计收益，然后根据 real_start_date 的价格进行缩放
     cum_ret = (1 + synthetic_returns.fillna(0)).cumprod()

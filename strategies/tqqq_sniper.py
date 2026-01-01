@@ -11,13 +11,27 @@ import backtrader as bt
 from utils.base_strategy import BaseStrategy
 from utils.runer import run_strategy
 
+"""
+TQQQ 狙击手策略 - 多目标优化版本
+策略逻辑：
+1. 以 QQQ 为参照物，TQQQ 为交易标的
+2. 当 QQQ 价格站上 200日均线 + 4% 才入场
+3. 当 QQQ 价格跌破 200日均线 - 3% 全清仓
+4. 当 QQQ 单日回调超过1%时，视为回调机会
+5. 分批建仓，每次加仓20%，最多5次
+
+可选标的：
+- QQQ / TQQQ
+- GLD / UGL
+"""
+
 class TQQQSniperStrategy(BaseStrategy):
     params = (
-        ('ma_period', 200),      # 200日均线 [1]
+        ('ma_period', 168),      # 200日均线 [1]
         ('entry_buffer', 1.04),  # 站上均线4%才入场 [1, 3]
-        ('exit_buffer', 0.97),   # 跌破均线3%全清仓 [1, 3]
-        ('dip_threshold', 0.99), # 单日回调超过1% [1]
-        ('batch_size', 0.2),     # 20%仓位分批建仓 [1]
+        ('exit_buffer', 0.98),   # 跌破均线3%全清仓 [1, 3]
+        ('dip_threshold', 0.985), # 单日回调超过1% [1]
+        ('batch_size', 0.25),     # 20%仓位分批建仓 [1]
     )
 
     def __init__(self):
@@ -72,7 +86,7 @@ def run_tqqq_strategy(strategy_args={}, symbol=['QQQ', 'TQQQ'], start_date='2010
 
 
 
-def objective(trial):
+def objective(trial, args):
     # ✅ TQQQ Sniper 策略参数优化
     # 均线周期
     ma_period = trial.suggest_int('ma_period', 66, 300)  # 100-300日均线范围
@@ -85,17 +99,16 @@ def objective(trial):
     
     # 回调阈值 (0.95-0.995 = 0.5%-5% 回调)
     dip_threshold = trial.suggest_float('dip_threshold', 0.95, 0.995)
-    
     # 批次大小 (0.1-0.3 = 10%-30% 仓位)
-    batch_size = trial.suggest_float('batch_size', 0.1, 0.3)
-
+    batch_size = trial.suggest_float('batch_size', 0.1, 0.5)
+    
     # 参数约束：入场缓冲必须大于出场缓冲
     if entry_buffer <= exit_buffer:
-        return -1e6
+        return 0
     
     # 参数约束：入场缓冲必须大于1，出场缓冲必须小于1
     if entry_buffer <= 1.0 or exit_buffer >= 1.0:
-        return -1e6
+        return 0
 
     cerebro = bt.Cerebro()
     cerebro.addstrategy(TQQQSniperStrategy, 
@@ -108,13 +121,13 @@ def objective(trial):
     # 使用 QQQ 作为参照物，TQQQ 作为交易标的
     qqq_data = get_yfinance_data(
         args.stock0,
-        datetime(2014, 1, 1),
-        datetime(2024, 12, 31)
+        args.fromdate,
+        args.todate
     )
     tqqq_data = get_yfinance_data(
         args.stock1,
-        datetime(2014, 1, 1),
-        datetime(2024, 12, 31)
+        args.fromdate,
+        args.todate
     )
     
     cerebro.adddata(qqq_data)
@@ -124,18 +137,35 @@ def objective(trial):
 
     # 添加多个性能指标
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days, annualize=True)
-    cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
+    cerebro.addanalyzer(bt.analyzers.AnnualReturn, _name='returns')
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='trades')
 
     try:
-        result = cerebro.run()
-        sharpe_ratio = result[0].analyzers.sharpe.get_analysis().get('sharperatio')
+        strats = cerebro.run()
+        strat = strats[0]
+        
+        # 获取各项指标
+        sharpe_ratio = strat.analyzers.sharpe.get_analysis().get('sharperatio', 0)
+        returns_analysis = strat.analyzers.returns.get_analysis()
+        annual_return = returns_analysis.get('rnorm100', 0)  # 年化收益率百分比
+        
+        trades_analysis = strat.analyzers.trades.get_analysis()
+        total_trades = trades_analysis.get('total', {}).get('total', 0)
+        print("总交易次数:", total_trades)
+        win_rate = trades_analysis.get('won', {}).get('total', 0) / max(total_trades, 1)
+        drawdown = strat.analyzers.drawdown.get_analysis()
+        max_drawdown = drawdown.get('max', {}).get('drawdown', 100)  # 最大回撤
+        # 处理缺失值
+        sharpe_ratio = sharpe_ratio if sharpe_ratio is not None else -2
+        annual_return = annual_return if annual_return is not None else -100
         
         # 如果夏普比率为None，返回一个较差的值
-        if sharpe_ratio is None:
-            return -1e6
-
+        # # 设置约束条件（硬性要求）: 最大回撤超过30%，直接淘汰
+        # if max_drawdown > 30 or total_trades < 6:  
+        #     return 0
+        # if annual_return < 0:  # 负收益
+        #     return -1e5 + annual_return
         return float(sharpe_ratio)
         
     except Exception as e:
@@ -150,9 +180,10 @@ def optimize_strategy():
     """
     start_time = time.time()
     study = optuna.create_study(direction='maximize')
-    print("开始 TQQQ Sniper 策略参数优化...")
+    print("开始 TQQQ Sniper 策略多目标优化（夏普比率 + 平均年化收益率）...")
+    print("优化目标权重：夏普比率 60%，年化收益率 40%")
     
-    study.optimize(objective, n_trials=50, n_jobs=1)  # 减少试次数，提高稳定性
+    study.optimize(lambda trial: objective(trial, args), n_trials=50, n_jobs=6)  # 减少试次数，提高稳定性
 
     end_time = time.time()
     print(f"优化耗时: {(end_time - start_time)/60:.2f} 分钟")
@@ -172,7 +203,7 @@ def _display_optimization_results(study):
     """
     print("\n=== TQQQ Sniper 策略优化结果 ===")
     print("最优参数:", study.best_params)
-    print("最优 Sharpe 比率:", study.best_value)
+    print("最优组合得分（夏普比率）:", study.best_value)
     
     # 显示最佳试验的详细信息
     best_trial = study.best_trial
@@ -184,6 +215,55 @@ def _display_optimization_results(study):
     print(f"\n所有试验统计:")
     print(f"已完成试验数: {len(study.trials)}")
     
+    # 显示最佳试验的详细指标
+    print(f"\n最佳试验详细指标:")
+    # 运行一次最佳参数获取详细指标
+    from copy import deepcopy
+    best_params = deepcopy(study.best_params)
+    
+    # 创建一个临时函数来获取详细指标
+    def get_detailed_metrics(params):
+        cerebro = bt.Cerebro()
+        cerebro.addstrategy(TQQQSniperStrategy, **params)
+
+        # 使用 QQQ 作为参照物，TQQQ 作为交易标的
+        qqq_data = get_yfinance_data(
+            args.stock0,
+            datetime(2014, 1, 1),
+            datetime(2024, 12, 31)
+        )
+        tqqq_data = get_yfinance_data(
+            args.stock1,
+            datetime(2014, 1, 1),
+            datetime(2024, 12, 31)
+        )
+        
+        cerebro.adddata(qqq_data)
+        cerebro.adddata(tqqq_data)
+        cerebro.broker.setcash(10000)
+
+        cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name='sharpe', timeframe=bt.TimeFrame.Days, annualize=True)
+        cerebro.addanalyzer(bt.analyzers.AnnualReturn, _name='annual_return')
+        cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
+        cerebro.addanalyzer(bt.analyzers.TradeAnalyzer, _name='trades')
+
+        result = cerebro.run()
+        
+        sharpe = result[0].analyzers.sharpe.get_analysis().get('sharperatio', 0)
+        annual_return_data = result[0].analyzers.annual_return.get_analysis()
+        avg_annual_return = sum(annual_return_data.values()) / len(annual_return_data) if annual_return_data else 0
+        
+        return {
+            'sharpe': sharpe,
+            'avg_annual_return': avg_annual_return,
+            'final_value': cerebro.broker.getvalue()
+        }
+    
+    metrics = get_detailed_metrics(best_params)
+    print(f"夏普比率: {metrics['sharpe']:.4f}")
+    print(f"平均年化收益率: {metrics['avg_annual_return']:.4f} ({metrics['avg_annual_return']*100:.2f}%)")
+    print(f"最终资产价值: {metrics['final_value']:.2f}")
+    
     # 显示前3个最佳参数组合
     trials_df = study.trials_dataframe()
     if len(trials_df) > 0:
@@ -194,6 +274,7 @@ def _display_optimization_results(study):
         available_columns = []
         param_keys = list(study.best_params.keys())
         for param in param_keys:
+            param = f'params_{param}'
             if param in trials_df.columns:
                 available_columns.append(param)
         
@@ -219,7 +300,7 @@ def parse_args():
                         help='Period to apply to the Simple Moving Average')
     
     parser.add_argument('--fromdate', '-f',
-                        default='2000-01-01',
+                        default='2010-01-01',
                         help='Starting date in YYYY-MM-DD format')
 
     parser.add_argument('--todate', '-t',
@@ -235,10 +316,10 @@ def parse_args():
     parser.add_argument('--stake_pct', default=20, type=int,
                         help='Stake to apply in each operation')
 
-    parser.add_argument('--plot', '-p', default=True, action='store_true',
+    parser.add_argument('--plot', '-p', default=False, action='store_true',
                         help='Plot the read data')
     
-    parser.add_argument('--optimize', '-o', default=True, action='store_true',
+    parser.add_argument('--optimize', '-o', default=False, action='store_true',
                         help='Run optimization process for this strategy')
 
     return parser.parse_args()
