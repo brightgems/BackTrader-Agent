@@ -27,8 +27,8 @@ TQQQ 狙击手策略 - 多目标优化版本
 
 class TQQQSniperStrategy(BaseStrategy):
     params = (
-        ('ma_period', 90),      # 200日均线 [1]
-        ('entry_buffer', 1.02),  # 站上均线4%才入场 [1, 3]
+        ('ma_period', 200),      # 200日均线 [1]
+        ('entry_buffer', 1.06),  # 站上均线4%才入场 [1, 3]
         ('exit_buffer', 0.93),   # 跌破均线3%全清仓 [1, 3]
         ('dip_threshold', 0.99), # 单日回调超过1% [1]
         ('batch_size', 0.25),     # 20%仓位分批建仓 [1]
