@@ -11,10 +11,14 @@ def get_aligned_synthetic_data(qqq_df, tqqq_df, annual_expense=0.02):
     关键细节说明（基于来源逻辑）：
     1. 严谨的损耗扣除：函数严格执行了来源中提到的每年 2% 的损耗扣除。这在回测中至关重要，因为这 2% 的管理费和调仓损耗在长达 26 年的复利下对最终资产总额有显著影响。
     2. 数据无缝衔接：为了避免在 2010 年 2 月出现价格断层，该函数采用了逆向锚定法。它以真实 TQQQ 上市当天的价格作为锚点向 1999 年回溯，确保回测曲线的连续性。
-    3. 地狱级副本回测基础：通过此函数生成的 1999-2010 年拟合数据，将包含 2000 年互联网泡沫期间 TQQQ 暴跌 99% 以上的极端行情,。这正是验证该策略“200日均线防火墙”是否能防止账户归零的关键。
-    4. 实战意义：来源指出，这种合成数据的方法让普通人能够验证该策略在经历 2000 年和 2008 年两次“毁灭性打击”后的表现，从而证明其 36.1% 最大回撤 的防御能力,。
+    3. 地狱级副本回测基础：通过此函数生成的 1999-2010 年拟合数据，将包含 2000 年互联网泡沫期间 TQQQ 暴跌 99% 以上的极端行情,。这正是验证该策略"200日均线防火墙"是否能防止账户归零的关键。
+    4. 实战意义：来源指出，这种合成数据的方法让普通人能够验证该策略在经历 2000 年和 2008 年两次"毁灭性打击"后的表现，从而证明其 36.1% 最大回撤 的防御能力,。
 
     """
+    # 数据验证
+    if qqq_df.empty or tqqq_df.empty:
+        raise ValueError("输入数据不能为空")
+    
     # 确保日期格式正确并排序
     qqq_df.index = pd.to_datetime(qqq_df.index)
     tqqq_df.index = pd.to_datetime(tqqq_df.index)
@@ -26,6 +30,9 @@ def get_aligned_synthetic_data(qqq_df, tqqq_df, annual_expense=0.02):
     
     # 2. 提取 TQQQ 上市之前的 QQQ 数据进行拟合
     synthetic_period = qqq_df[qqq_df.index < real_start_date].copy()
+    
+    if synthetic_period.empty:
+        return tqqq_df.reindex(qqq_df.index)  # 如果没有拟合期，直接返回 TQQQ 数据对齐后的结果
     
     # 计算 QQQ 每日收益率
     qqq_returns = synthetic_period['Close'].pct_change()
@@ -39,7 +46,7 @@ def get_aligned_synthetic_data(qqq_df, tqqq_df, annual_expense=0.02):
     # 3. 为了让曲线无缝衔接，以真实 TQQQ 上市首日的价格为基准，逆向推算早期价格
     # 初始价格设为真实 TQQQ 第一天的开盘价
     base_price = tqqq_df.iloc[0]['Open']
-    breakpoint()
+    
     # 逆向累乘计算价格序列
     # 我们先正向计算累计收益，然后根据 real_start_date 的价格进行缩放
     cum_ret = (1 + synthetic_returns.fillna(0)).cumprod()
@@ -62,6 +69,5 @@ def get_aligned_synthetic_data(qqq_df, tqqq_df, annual_expense=0.02):
     full_tqqq = pd.concat([synthetic_df, tqqq_df])
     
     # 6. 与 QQQ 时间轴完全对齐
-    final_df = pd.merge(qqq_df[[]], full_tqqq, left_index=True, right_index=True, how='left')
-    
+    final_df = full_tqqq.reindex(qqq_df.index)
     return final_df
