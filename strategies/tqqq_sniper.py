@@ -27,11 +27,12 @@ TQQQ 狙击手策略 - 多目标优化版本
 
 class TQQQSniperStrategy(BaseStrategy):
     params = (
-        ('ma_period', 168),      # 200日均线 [1]
-        ('entry_buffer', 1.04),  # 站上均线4%才入场 [1, 3]
-        ('exit_buffer', 0.98),   # 跌破均线3%全清仓 [1, 3]
-        ('dip_threshold', 0.985), # 单日回调超过1% [1]
+        ('ma_period', 90),      # 200日均线 [1]
+        ('entry_buffer', 1.02),  # 站上均线4%才入场 [1, 3]
+        ('exit_buffer', 0.93),   # 跌破均线3%全清仓 [1, 3]
+        ('dip_threshold', 0.99), # 单日回调超过1% [1]
         ('batch_size', 0.25),     # 20%仓位分批建仓 [1]
+        ('max_pos_pct', 0.95),     # 20%仓位分批建仓 [1]
     )
 
     def __init__(self):
@@ -55,9 +56,10 @@ class TQQQSniperStrategy(BaseStrategy):
         # 只要 QQQ 价格跌破 200MA 再减 3% 的缓冲区，立即 100% 卖出 [1]
         if qqq_price < ma_val * self.params.exit_buffer:
             if self.getposition(self.tqqq).size > 0:
+                print(f"清仓信号：现金{self.broker.getcash():.2f}")
                 self.close(data=self.tqqq)
                 self.current_pos_ratio = 0.0
-                print(f"清仓信号：QQQ跌破均线安全区，全仓撤退至现金 [1, 5]")
+                print(f"清仓信号：QQQ跌破均线安全区，全仓撤退至现金{self.broker.getcash():.2f}")
             return
 
         # --- 狙击买入逻辑 ---
@@ -69,14 +71,14 @@ class TQQQSniperStrategy(BaseStrategy):
         
         if trend_is_strong and is_dip:
             # 如果还没建满仓（分 5 笔，每笔 20%）[1, 2]
-            if self.current_pos_ratio < 1.0:
+            if self.current_pos_ratio < self.params.max_pos_pct:
                 # 计算目标仓位，确保不超过1.0
-                target = min(self.current_pos_ratio + self.params.batch_size, 1.0)
+                target = min(self.current_pos_ratio + self.params.batch_size, self.params.max_pos_pct)
                 # 计算目标仓位对应的股数（仅针对分配给此策略的资金）
                 # 注意：来源建议此策略占总资产的 25% [6]
                 self.order_target_percent(data=self.tqqq, target=target)
                 self.current_pos_ratio = target
-                print(f"买入信号：趋势走强且回调，加仓 20%，当前仓位: {self.current_pos_ratio*100:.1f}% [1]")
+                print(f"买入信号：趋势走强且回调，加仓 {self.params.batch_size*100:.1f}%，当前仓位: {self.current_pos_ratio*100:.1f}% [1]")
                 
 def run_tqqq_strategy(strategy_args={}, symbol=['QQQ', 'TQQQ'], start_date='2010-01-01', end_date='2025-06-30'):
     # 运行策略
@@ -183,7 +185,7 @@ def optimize_strategy():
     print("开始 TQQQ Sniper 策略多目标优化（夏普比率 + 平均年化收益率）...")
     print("优化目标权重：夏普比率 60%，年化收益率 40%")
     
-    study.optimize(lambda trial: objective(trial, args), n_trials=50, n_jobs=6)  # 减少试次数，提高稳定性
+    study.optimize(lambda trial: objective(trial, args), n_trials=100, n_jobs=6)  # 减少试次数，提高稳定性
 
     end_time = time.time()
     print(f"优化耗时: {(end_time - start_time)/60:.2f} 分钟")

@@ -31,9 +31,10 @@ class BaseStrategy(bt.Strategy):
                 self.log(f"空头信号 - 卖出成交: {order.executed.price:.2f}, 数量: {order.executed.size}")
             
             self.trade_count += 1
-            
-        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log(f"订单失败: {order.status}")
+        elif order.status in [order.Margin, order.Partial]:
+            self.log("订单部分成交或保证金不足")
+        elif order.status in [order.Canceled,  order.Rejected]:
+            self.log("订单失败: {}".format(order.getstatusname()))
             
         self.order = None
         

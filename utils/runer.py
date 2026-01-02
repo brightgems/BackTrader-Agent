@@ -84,7 +84,7 @@ def run_strategy(strategy, strategy_args={},
     sharpe_ratio = sharpe.get('sharperatio')
     max_drawdown = drawdown.get('max', {}).get('drawdown')
     total_trades = trades_analysis.get('total', {}).get('total', 0)
-    win_rate = trades_analysis.get('won', {}).get('total', 0) / max(total_trades, 1)
+    win_rate = trades_analysis.get('won', {}).get('total', 0) / max(total_trades, 1) * 100
     
     print(f"年化收益率: {annual_return:.2f}%" if annual_return is not None else "年化收益率: 无数据")
     print(f"夏普比率: {sharpe_ratio:.2f}" if sharpe_ratio is not None else "夏普比率: 无数据")
